@@ -9,6 +9,20 @@ The single most important constraint: **this tool never changes the user's team.
 It reads game data and gives advice. Do not add any Sport5 write/transfer/mutation
 calls. A PR that introduces a write endpoint will be declined.
 
+## Branch protection
+
+`main` is protected **locally** by a `pre-push` git hook (`.githooks/pre-push`) that
+blocks direct pushes — everything lands via a pull request. Git hooks aren't enabled
+automatically on clone, so turn it on once after cloning:
+
+```bash
+make hooks      # sets core.hooksPath to .githooks
+```
+
+(This is a client-side guardrail because the repo is a free private repo, where GitHub
+gates server-side branch protection behind Pro. Override a single push with
+`git push --no-verify` only if you truly mean it.)
+
 ## Development workflow
 
 1. Fork to your own account and clone.
