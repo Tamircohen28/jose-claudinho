@@ -13,3 +13,12 @@ data/
 # Editor
 .vscode/
 .idea/
+
+# Sport5 copyrighted reference docs — kept locally, never published.
+# The game rules are encoded in our own mcp-server/src/rules.ts instead.
+fantasywc-sport5-terms-and-conditions.md
+fantasywc-sport5-faq.md
+
+# TypeScript / esbuild build cruft (the committed dist/index.js bundle is intentional)
+*.tsbuildinfo
+mcp-server/dist/*.map

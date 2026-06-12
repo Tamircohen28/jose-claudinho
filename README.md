@@ -1,4 +1,12 @@
+<p align="center">
+  <img src="assets/banner.svg" alt="José Claudinho" width="640">
+</p>
+
 # José Claudinho ⚽🤖
+
+[![CI](https://github.com/TamirCohen28/jose-claudinho/actions/workflows/ci.yml/badge.svg)](https://github.com/TamirCohen28/jose-claudinho/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-plugin-7c3aed.svg)](https://claude.com/claude-code)
 
 > Your AI assistant manager for **Sport5 Fantasy World Cup 2026**.
 
@@ -42,6 +50,12 @@ you a concrete plan; you apply it in the app.
 `sport5_list_players` · `sport5_get_my_team` · `sport5_get_user_team` ·
 `sport5_get_my_leagues` · `sport5_get_league_table` · `worldcup_fixtures` ·
 `snapshot_top_teams` · `analyze_ownership` · `list_snapshots` · `get_game_rules`
+
+## Prerequisites
+
+- **[Claude Code](https://claude.com/claude-code)** — the host for the plugin, MCP server and skills.
+- **Node.js ≥ 18** (developed on 22) — to build the MCP bundle. The runtime bundle is committed, so end-users only need Node to *run* it, not to install dependencies.
+- **A Sport5 Fantasy WC 2026 account** — for the private (team/league) reads. The player market, rules and fixtures work without one.
 
 ## Install
 
@@ -143,6 +157,19 @@ npm run build        # esbuild → dist/index.js
 The MCP source is in `mcp-server/src/` (`rules.ts`, `transform.ts`,
 `sport5Client.ts`, `fixtures.ts`, `storage.ts`, `analysis.ts`, `index.ts`). The
 game rules live entirely in `rules.ts` — update there if Sport5 changes them.
+
+## Documentation
+
+Full docs live in [`docs/`](docs/):
+
+- **[User guide](docs/user/)** — [concepts](docs/user/concepts.md), [quick start](docs/user/quick-start.md), [troubleshooting](docs/user/troubleshooting.md).
+- **[Engineering](docs/engineering/)** — [architecture overview](docs/engineering/architecture/overview.md), [development workflow](docs/engineering/build-and-release/development-workflow.md), [decision records](docs/engineering/decisions/).
+- **[Changelog](CHANGELOG.md)** · **[Contributing](docs/CONTRIBUTING.md)**
+
+## Contributing
+
+Issues and PRs are welcome. See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the
+workflow, code style and the constraint that this tool stays **read-and-recommend only**.
 
 ## Disclaimer
 
