@@ -1,7 +1,8 @@
 ---
 name: weekly-squad-advisor
-description: Use when the user wants Fantasy World Cup 2026 (Sport5) advice — which players to transfer in/out, who to captain, lineup/formation/bench choices, or "what should I do this week / round". Reads the live market, the user's team, top rival teams and fixtures via the fantasy-wc MCP, then recommends concrete moves that respect every game rule (budget, max-per-national-team, transfer count, formation, bench, chips).
+description: Internal skill powering the /squad-advice command. Produces the weekly Fantasy World Cup 2026 recommendation — transfers, captain, lineup, chips — enforcing all game rules. Invoked by the squad-advice command; not meant to be called directly by users.
 version: 1.0.0
+user-invocable: false
 ---
 
 # Weekly Squad Advisor — Fantasy World Cup 2026 (Sport5)
@@ -24,11 +25,27 @@ moves and the user applies them in the app at https://fantasywc.sport5.co.il.
 
 Follow these steps in order. Do not skip the constraint check at the end.
 
-1. **Establish the stage.** Ask the user (or infer from fixtures) which stage the
-   upcoming round is in: group / r32 / r16 / qf / sf / final. Call
-   `get_game_rules` with that stage. This fixes the **budget**, the **max players
-   per national team**, and the **transfers allowed this round**. These change
-   per stage — never assume group-stage values.
+1. **Establish the stage and transfer window status.** Ask the user (or infer
+   from fixtures) which stage the upcoming round is in: group / r32 / r16 / qf /
+   sf / final. Call `get_game_rules` with that stage. This fixes the **budget**,
+   the **max players per national team**, and the **transfers allowed this
+   round**. These change per stage — never assume group-stage values.
+
+   **Then immediately determine whether the transfer window is open or closed.**
+   Call `worldcup_fixtures` (when="past") and check whether any match in the
+   current round has already kicked off. The deadline is **one single cutoff per
+   round — 30 minutes before the round's first match**. It is NOT a rolling
+   per-match deadline. Once any match in the round has started, the window is
+   locked for ALL remaining matches in that round.
+
+   - **Window CLOSED** (any current-round match already played): State this
+     prominently at the top of your response. Skip steps 6 and 7 entirely —
+     transfers and captain/VC changes are impossible. Instead, note when the
+     next window opens (after the round's final match), and use steps 2–5 and
+     8–9 to prepare a watchlist for the next round.
+   - **Window OPEN** (no current-round match played yet): Continue through all
+     steps. Note the exact deadline: 30 minutes before the first scheduled
+     match of this round.
 
 2. **Load the current team.** Call `sport5_get_my_team`. Note the starting XI,
    bench, captain/vice, formation, `usedBudgetM`, `playersPerNationalTeam`, and
@@ -86,13 +103,17 @@ Follow these steps in order. Do not skip the constraint check at the end.
 
 Give the user a tight, scannable plan:
 
+- **Window:** OPEN (deadline: 30 min before [first match date/time]) **or** CLOSED
+  (round in progress — next window opens after [last match of current round]).
 - **Transfers (N used / M allowed):** `OUT <name> (X.XM) → IN <name> (Y.YM)` with a
   one-line reason each. Show net budget impact and remaining budget.
+  Omit this section entirely if the window is closed.
 - **Captain:** name + why. **Vice:** name.
 - **Starting XI:** formation + the 11 names by position. **Bench order:** the 4.
 - **Chips:** recommend or explicitly hold.
-- **Watch-outs:** injuries, eliminations, deadline (transfers lock 30 min before
-  kickoff; final points update by 16:00 the day after the round ends).
+- **Watch-outs:** injuries, eliminations, deadline (transfers AND captain changes
+  lock 30 min before the **round's first match** — one cutoff for the whole
+  round, not per match; final points update by 16:00 the day after the round ends).
 
 End with the expected-value rationale in 2-3 sentences. Be decisive — recommend
 one plan, and optionally one alternative if it's close.
