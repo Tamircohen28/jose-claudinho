@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JSON manifests
+        run: |
+          for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json .mcp.json mcp-server/package.json; do
+            echo "Validating $f"
+            python3 -c "import json,sys; json.load(open('$f'))"
+          done
+
+  test:
+    name: Typecheck & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp-server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mcp-server/package-lock.json
+      - run: npm ci
+      - name: Type-check (correctness gate)
+        run: npm run typecheck
+      - name: Build bundle
+        run: npm run build
+      - name: Verify bundle exists
+        run: test -f dist/index.js
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Grep for high-signal secret patterns
+        run: |
+          set -e
+          # Fail if anything that looks like a committed session cookie or token appears.
+          if grep -rEn \
+              -e 'SPORT5_COOKIE[[:space:]]*=[[:space:]]*["'"'"']?[A-Za-z0-9].{20,}' \
+              -e 'gh[pousr]_[A-Za-z0-9]{20,}' \
+              -e 'AKIA[0-9A-Z]{16}' \
+              --include='*.ts' --include='*.js' --include='*.json' --include='*.md' \
+              --exclude-dir=node_modules --exclude-dir=dist . ; then
+            echo "::error::Potential secret found in source. Remove it before merging."
+            exit 1
+          fi
+          echo "No secret patterns found."
