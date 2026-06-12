@@ -146,41 +146,50 @@ export const CAPTAINCY = {
 /**
  * The four once-per-season bonus chips.
  *
- * IMPORTANT: the mapping from the API's numeric `bonusId` to these chips is
- * NOT confirmed from the API responses we have. The labels below follow the
- * order the chips are listed in the official rules. Treat `bonusId` values
- * surfaced by the tools as raw until confirmed against the live UI.
+ * The `bonusId` → chip mapping is VERIFIED against the game's own config
+ * (Leagues/Get → sportTypeBasicConfig.bonusTypes). The API enum names are
+ * given alongside the user-facing labels.
  */
 export const BONUS_CHIPS = [
   {
-    inferredBonusId: 1,
+    bonusId: 1,
+    apiName: "TripleCaptain",
     key: "triple_captain",
     label: "Triple Captain",
     effect: "The captain scores x3 (instead of x2) for one round.",
   },
   {
-    inferredBonusId: 2,
+    bonusId: 2,
+    apiName: "ElevenSubs",
     key: "five_subs",
     label: "5 Substitutions",
-    effect: "Make 5 transfers (instead of 3) in a single chosen round.",
+    effect:
+      "Make 5 transfers (instead of 3) in a single chosen round (season config allowedSubsInSubsBonus = 5).",
   },
   {
-    inferredBonusId: 3,
+    bonusId: 3,
+    apiName: "CaptainAndSubDouble",
     key: "double_captains",
     label: "Double Captains",
     effect:
       "Captain AND vice-captain both score double for one round. Stacks with Triple Captain (captain x3, vice x2).",
   },
   {
-    inferredBonusId: 4,
+    bonusId: 4,
+    apiName: "BenchScore",
     key: "all_squad_points",
     label: "All-Squad Points",
     effect: "All 15 players (starters + bench) score for one round.",
   },
-  {
-    note: "bonusId→chip mapping is inferred from rule ordering and not verified against the API.",
-  },
 ];
+
+/** Verified API bonusId → chip key map (sportTypeBasicConfig.bonusTypes). */
+export const BONUS_ID_TO_KEY: Record<number, string> = {
+  1: "triple_captain",
+  2: "five_subs",
+  3: "double_captains",
+  4: "all_squad_points",
+};
 
 export function getStage(key: string | undefined): StageRule {
   const k = (key || "group").toLowerCase() as StageKey;

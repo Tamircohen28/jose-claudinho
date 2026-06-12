@@ -22,4 +22,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Notes
 - Read-and-recommend only; no write/transfer endpoints are used.
-- The API `bonusId` → bonus-chip mapping is inferred and not yet verified.
+- The API `bonusId` → bonus-chip mapping is **verified** against the game config
+  (`Leagues/Get → sportTypeBasicConfig.bonusTypes`): 1=TripleCaptain,
+  2=ElevenSubs (5 transfers), 3=CaptainAndSubDouble, 4=BenchScore. Team tools now
+  label used chips by name.

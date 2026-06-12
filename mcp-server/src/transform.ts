@@ -1,6 +1,10 @@
 /** Helpers to turn raw Sport5 API payloads into compact, agent-friendly DTOs. */
 
-import { POSITION_LABEL } from "./rules.js";
+import { POSITION_LABEL, BONUS_CHIPS } from "./rules.js";
+
+const BONUS_LABEL: Record<number, string> = Object.fromEntries(
+  BONUS_CHIPS.map((c) => [c.bonusId, c.label])
+);
 
 export function priceToM(price: number): number {
   return Math.round((price / 1e6) * 10) / 10;
@@ -134,7 +138,11 @@ export function summarizeTeam(data: any) {
       : null,
     captainId: team.captainId,
     viceCaptainId: team.subCaptainId,
-    bonusesUsed: team.bonusesData || [],
+    bonusesUsed: (team.bonusesData || []).map((b: any) => ({
+      bonusId: b.bonusId,
+      chip: BONUS_LABEL[b.bonusId] || `bonus#${b.bonusId}`,
+      usageRoundId: b.usageRoundId,
+    })),
     formation,
     startersByPosition: startersByPos,
     benchByPosition: byPos(bench),

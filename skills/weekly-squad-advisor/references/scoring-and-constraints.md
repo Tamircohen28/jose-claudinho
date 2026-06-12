@@ -70,14 +70,16 @@ Penalty shootouts after extra time do **not** count.
 
 ## Bonus chips (each usable once for the whole season)
 
-> bonusId→chip mapping is not confirmed from the API; treat raw `bonusId`s on a
-> team as unverified labels.
+> `bonusId` → chip mapping is **verified** against the game config
+> (`Leagues/Get → sportTypeBasicConfig.bonusTypes`). API enum names in brackets.
 
-1. **Triple Captain** — captain scores ×3 (instead of ×2) for one round.
-2. **5 Substitutions** — make 5 transfers (instead of 3) in one chosen round.
-3. **Double Captains** — captain AND vice both score double for one round. Stacks
-   with Triple Captain (captain ×3, vice ×2).
-4. **All-Squad Points** — all 15 players (XI + bench) score for one round.
+1. **Triple Captain** (`bonusId 1`, `TripleCaptain`) — captain scores ×3 for one round.
+2. **5 Substitutions** (`bonusId 2`, `ElevenSubs`) — make 5 transfers (instead of 3)
+   in one chosen round (`allowedSubsInSubsBonus = 5`).
+3. **Double Captains** (`bonusId 3`, `CaptainAndSubDouble`) — captain AND vice both
+   score double for one round. Stacks with Triple Captain (captain ×3, vice ×2).
+4. **All-Squad Points** (`bonusId 4`, `BenchScore`) — all 15 players (XI + bench)
+   score for one round.
 
 ## Validation checklist (run before presenting any plan)
 

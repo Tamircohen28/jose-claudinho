@@ -21267,31 +21267,32 @@ var CAPTAINCY = {
 };
 var BONUS_CHIPS = [
   {
-    inferredBonusId: 1,
+    bonusId: 1,
+    apiName: "TripleCaptain",
     key: "triple_captain",
     label: "Triple Captain",
     effect: "The captain scores x3 (instead of x2) for one round."
   },
   {
-    inferredBonusId: 2,
+    bonusId: 2,
+    apiName: "ElevenSubs",
     key: "five_subs",
     label: "5 Substitutions",
-    effect: "Make 5 transfers (instead of 3) in a single chosen round."
+    effect: "Make 5 transfers (instead of 3) in a single chosen round (season config allowedSubsInSubsBonus = 5)."
   },
   {
-    inferredBonusId: 3,
+    bonusId: 3,
+    apiName: "CaptainAndSubDouble",
     key: "double_captains",
     label: "Double Captains",
     effect: "Captain AND vice-captain both score double for one round. Stacks with Triple Captain (captain x3, vice x2)."
   },
   {
-    inferredBonusId: 4,
+    bonusId: 4,
+    apiName: "BenchScore",
     key: "all_squad_points",
     label: "All-Squad Points",
     effect: "All 15 players (starters + bench) score for one round."
-  },
-  {
-    note: "bonusId\u2192chip mapping is inferred from rule ordering and not verified against the API."
   }
 ];
 function getStage(key2) {
@@ -21313,6 +21314,9 @@ function rulesForStage(stageKey) {
 }
 
 // src/transform.ts
+var BONUS_LABEL = Object.fromEntries(
+  BONUS_CHIPS.map((c) => [c.bonusId, c.label])
+);
 function priceToM(price) {
   return Math.round(price / 1e6 * 10) / 10;
 }
@@ -21405,7 +21409,11 @@ function summarizeTeam(data) {
     favTeam: team.favTeam ? { id: team.favTeam.id, name: team.favTeam.name } : null,
     captainId: team.captainId,
     viceCaptainId: team.subCaptainId,
-    bonusesUsed: team.bonusesData || [],
+    bonusesUsed: (team.bonusesData || []).map((b) => ({
+      bonusId: b.bonusId,
+      chip: BONUS_LABEL[b.bonusId] || `bonus#${b.bonusId}`,
+      usageRoundId: b.usageRoundId
+    })),
     formation,
     startersByPosition: startersByPos,
     benchByPosition: byPos(bench),
