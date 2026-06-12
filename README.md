@@ -61,6 +61,20 @@ you a concrete plan; you apply it in the app.
 
 This repo **is** the plugin. Build the MCP bundle, then add it to Claude Code.
 
+**One command** (builds the bundle, then adds the marketplace & installs the plugin
+— idempotent, safe to re-run after server changes):
+
+```bash
+make plugin
+```
+
+It builds `mcp-server/dist/index.js`, then adds the local marketplace and installs
+`jose-claudinho@jose-claudinho` — updating in place if either is already present.
+Restart Claude Code (or run `/plugin`) afterward to load the latest build.
+
+<details>
+<summary>Or do it by hand</summary>
+
 ```bash
 # 1. Build the self-contained MCP bundle (one time, and after server changes)
 cd mcp-server
@@ -73,12 +87,18 @@ cd ..
 /plugin marketplace add /Users/tamircohen/Projects/jose-claudinho
 /plugin install jose-claudinho@jose-claudinho
 ```
+</details>
 
 The committed `mcp-server/dist/index.js` is a single self-contained file, so the
 plugin runs without `node_modules` present at runtime. Rebuild only when you change
 the server source.
 
 ## Configure
+
+**The only thing you ever set is your session cookie.** Fixtures, snapshot storage,
+season and league ids all ship with working defaults baked into the server — no setup
+required. (Unset or unsubstituted `${VAR}` placeholders are ignored, so the defaults
+always win.)
 
 Private endpoints (your team, your leagues) use your logged-in Sport5 session. Set
 your cookie as an environment variable before launching Claude Code:
@@ -92,14 +112,16 @@ Network → click any `dreamteam.sport5.co.il/api/...` request → Headers → c
 full **Cookie** value. The cookie expires periodically; re-copy it if private tools
 start failing. Run `/fantasy-setup` for a guided walkthrough.
 
-| Env var | Default | Purpose |
-|---------|---------|---------|
-| `SPORT5_COOKIE` | — | Your session cookie (required for private reads) |
-| `SPORT5_SEASON_ID` | `9` | Season id |
-| `FWC_DATA_DIR` | `~/.fantasy-wc-mcp/data` | Where snapshots are stored |
-| `SPORTSDB_KEY` | `3` | TheSportsDB API key (free default) |
-| `SPORTSDB_WC_LEAGUE_ID` | `4429` | TheSportsDB World Cup league id |
-| `SPORTSDB_WC_SEASON` | `2026` | Fixtures season |
+| Env var | Default | Set it? | Purpose |
+|---------|---------|---------|---------|
+| `SPORT5_COOKIE` | — | **Yes**, for private reads | Your session cookie |
+| `SPORT5_SEASON_ID` | `9` | No | Season id |
+| `FWC_DATA_DIR` | `~/.fantasy-wc-mcp/data` | No | Where snapshots are stored |
+| `SPORTSDB_KEY` | `3` | No | TheSportsDB API key (free default) |
+| `SPORTSDB_WC_LEAGUE_ID` | `4429` | No | TheSportsDB World Cup league id |
+| `SPORTSDB_WC_SEASON` | `2026` | No | Fixtures season |
+
+Everything marked "No" is optional — override it only if you have a reason to.
 
 ### What needs the cookie
 
