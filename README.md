@@ -61,6 +61,20 @@ you a concrete plan; you apply it in the app.
 
 This repo **is** the plugin. Build the MCP bundle, then add it to Claude Code.
 
+**One command** (builds the bundle, then adds the marketplace & installs the plugin
+— idempotent, safe to re-run after server changes):
+
+```bash
+make plugin
+```
+
+It builds `mcp-server/dist/index.js`, then adds the local marketplace and installs
+`jose-claudinho@jose-claudinho` — updating in place if either is already present.
+Restart Claude Code (or run `/plugin`) afterward to load the latest build.
+
+<details>
+<summary>Or do it by hand</summary>
+
 ```bash
 # 1. Build the self-contained MCP bundle (one time, and after server changes)
 cd mcp-server
@@ -73,6 +87,7 @@ cd ..
 /plugin marketplace add /Users/tamircohen/Projects/jose-claudinho
 /plugin install jose-claudinho@jose-claudinho
 ```
+</details>
 
 The committed `mcp-server/dist/index.js` is a single self-contained file, so the
 plugin runs without `node_modules` present at runtime. Rebuild only when you change
