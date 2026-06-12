@@ -6,17 +6,19 @@
  * to player records.
  */
 
+import { envOr } from "./env.js";
+
 function key(): string {
-  return process.env.SPORTSDB_KEY || "3";
+  return envOr("SPORTSDB_KEY", "3");
 }
 
 function leagueId(): string {
   // FIFA World Cup league id on TheSportsDB.
-  return process.env.SPORTSDB_WC_LEAGUE_ID || "4429";
+  return envOr("SPORTSDB_WC_LEAGUE_ID", "4429");
 }
 
 function season(): string {
-  return process.env.SPORTSDB_WC_SEASON || "2026";
+  return envOr("SPORTSDB_WC_SEASON", "2026");
 }
 
 function base(): string {

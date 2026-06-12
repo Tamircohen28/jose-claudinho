@@ -4,12 +4,7 @@
       "command": "node",
       "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.js"],
       "env": {
-        "SPORT5_COOKIE": "${SPORT5_COOKIE}",
-        "SPORT5_SEASON_ID": "${SPORT5_SEASON_ID}",
-        "FWC_DATA_DIR": "${FWC_DATA_DIR}",
-        "SPORTSDB_KEY": "${SPORTSDB_KEY}",
-        "SPORTSDB_WC_LEAGUE_ID": "${SPORTSDB_WC_LEAGUE_ID}",
-        "SPORTSDB_WC_SEASON": "${SPORTSDB_WC_SEASON}"
+        "SPORT5_COOKIE": "${SPORT5_COOKIE}"
       }
     }
   }

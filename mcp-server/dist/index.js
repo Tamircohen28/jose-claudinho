@@ -21100,13 +21100,29 @@ var StdioServerTransport = class {
   }
 };
 
+// src/env.ts
+var PLACEHOLDER = /^\s*\$\{[^}]*\}\s*$/;
+function envOpt(name) {
+  const raw = process.env[name];
+  if (raw == null) return void 0;
+  const v = raw.trim();
+  if (v === "" || PLACEHOLDER.test(v)) return void 0;
+  return v;
+}
+function envOr(name, fallback) {
+  return envOpt(name) ?? fallback;
+}
+
 // src/sport5Client.ts
 var BASE = "https://dreamteam.sport5.co.il/api";
 function seasonId() {
-  return process.env.SPORT5_SEASON_ID || "9";
+  return envOpt("SPORT5_SEASON_ID") ?? "9";
+}
+function cookie() {
+  return envOpt("SPORT5_COOKIE");
 }
 function hasCookie() {
-  return !!(process.env.SPORT5_COOKIE && process.env.SPORT5_COOKIE.trim());
+  return cookie() !== void 0;
 }
 var Sport5Error = class extends Error {
 };
@@ -21130,7 +21146,8 @@ async function s5get(path2, params = {}) {
     referer: "https://fantasywc.sport5.co.il/",
     "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
   };
-  if (hasCookie()) headers.cookie = process.env.SPORT5_COOKIE.trim();
+  const c = cookie();
+  if (c) headers.cookie = c;
   let res;
   try {
     res = await fetch(url, { headers });
@@ -21426,13 +21443,13 @@ function summarizeTeam(data) {
 
 // src/fixtures.ts
 function key() {
-  return process.env.SPORTSDB_KEY || "3";
+  return envOr("SPORTSDB_KEY", "3");
 }
 function leagueId() {
-  return process.env.SPORTSDB_WC_LEAGUE_ID || "4429";
+  return envOr("SPORTSDB_WC_LEAGUE_ID", "4429");
 }
 function season() {
-  return process.env.SPORTSDB_WC_SEASON || "2026";
+  return envOr("SPORTSDB_WC_SEASON", "2026");
 }
 function base() {
   return `https://www.thesportsdb.com/api/v1/json/${key()}`;
@@ -21611,7 +21628,7 @@ import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 function dataDir() {
-  return process.env.FWC_DATA_DIR || path.join(homedir(), ".fantasy-wc-mcp", "data");
+  return envOpt("FWC_DATA_DIR") ?? path.join(homedir(), ".fantasy-wc-mcp", "data");
 }
 async function ensureDir() {
   const dir = dataDir();
