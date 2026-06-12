@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- **Zero-config defaults for everything except the cookie.** Fixtures, snapshot
+  storage, season and league ids now rely entirely on baked-in server defaults; the
+  only env var a user ever sets is `SPORT5_COOKIE`. Optional env vars were removed
+  from `.mcp.json` so they no longer need wiring up.
+
+### Fixed
+- Unset or unsubstituted `${VAR}` placeholders (e.g. a literal `"${SPORTSDB_KEY}"`
+  arriving from the MCP env config) are now treated as "not set", so defaults always
+  win instead of being overridden by a placeholder string. New `src/env.ts` helpers
+  (`envOpt`/`envOr`) centralize this and are used across the server.
+
 ## [1.0.0] - 2026-06-12
 
 ### Added

@@ -1,13 +1,19 @@
 /** Thin authenticated client for the Sport5 Fantasy World Cup API. */
 
+import { envOpt } from "./env.js";
+
 const BASE = "https://dreamteam.sport5.co.il/api";
 
 export function seasonId(): string {
-  return process.env.SPORT5_SEASON_ID || "9";
+  return envOpt("SPORT5_SEASON_ID") ?? "9";
+}
+
+function cookie(): string | undefined {
+  return envOpt("SPORT5_COOKIE");
 }
 
 export function hasCookie(): boolean {
-  return !!(process.env.SPORT5_COOKIE && process.env.SPORT5_COOKIE.trim());
+  return cookie() !== undefined;
 }
 
 export class Sport5Error extends Error {}
@@ -47,7 +53,8 @@ export async function s5get(
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
       "(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
   };
-  if (hasCookie()) headers.cookie = process.env.SPORT5_COOKIE!.trim();
+  const c = cookie();
+  if (c) headers.cookie = c;
 
   let res: Response;
   try {

@@ -3,12 +3,10 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
+import { envOpt } from "./env.js";
 
 export function dataDir(): string {
-  return (
-    process.env.FWC_DATA_DIR ||
-    path.join(homedir(), ".fantasy-wc-mcp", "data")
-  );
+  return envOpt("FWC_DATA_DIR") ?? path.join(homedir(), ".fantasy-wc-mcp", "data");
 }
 
 async function ensureDir(): Promise<string> {
