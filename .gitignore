@@ -1,0 +1,15 @@
+# Dependencies (the runtime uses the committed self-contained dist bundle)
+node_modules/
+
+# Logs / OS cruft
+*.log
+npm-debug.log*
+.DS_Store
+
+# Local snapshot data (also defaults to ~/.fantasy-wc-mcp outside the repo)
+data/
+*.local
+
+# Editor
+.vscode/
+.idea/

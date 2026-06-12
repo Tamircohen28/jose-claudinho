@@ -1,0 +1,14 @@
+{
+  "name": "jose-claudinho",
+  "owner": {
+    "name": "TamirCohen28",
+    "url": "https://github.com/TamirCohen28"
+  },
+  "plugins": [
+    {
+      "name": "jose-claudinho",
+      "source": "./",
+      "description": "AI manager for Sport5 Fantasy World Cup 2026: market/team/league tools, weekly snapshots, and rules-aware transfer/captain/lineup recommendations."
+    }
+  ]
+}
