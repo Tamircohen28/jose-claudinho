@@ -1,7 +1,8 @@
 ---
 name: weekly-squad-advisor
-description: Use when the user wants Fantasy World Cup 2026 (Sport5) advice — which players to transfer in/out, who to captain, lineup/formation/bench choices, or "what should I do this week / round". Reads the live market, the user's team, top rival teams and fixtures via the fantasy-wc MCP, then recommends concrete moves that respect every game rule (budget, max-per-national-team, transfer count, formation, bench, chips).
+description: Internal skill powering the /squad-advice command. Produces the weekly Fantasy World Cup 2026 recommendation — transfers, captain, lineup, chips — enforcing all game rules. Invoked by the squad-advice command; not meant to be called directly by users.
 version: 1.0.0
+user-invocable: false
 ---
 
 # Weekly Squad Advisor — Fantasy World Cup 2026 (Sport5)
