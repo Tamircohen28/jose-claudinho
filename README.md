@@ -87,8 +87,23 @@ start failing. Run `/fantasy-setup` for a guided walkthrough.
 | `SPORTSDB_WC_LEAGUE_ID` | `4429` | TheSportsDB World Cup league id |
 | `SPORTSDB_WC_SEASON` | `2026` | Fixtures season |
 
-> Public endpoints (the market, other users' teams, league tables, fixtures, rules)
-> work **without** a cookie. Only your own team/leagues require it.
+### What needs the cookie
+
+The Sport5 game data is mostly **login-gated** — endpoints return a `302` redirect
+to the login page without a valid session.
+
+| Works **without** a cookie | **Requires** `SPORT5_COOKIE` |
+|----------------------------|------------------------------|
+| `sport5_list_players` (market) | `sport5_get_my_team` |
+| `get_game_rules` (config) | `sport5_get_my_leagues` |
+| `worldcup_fixtures` (TheSportsDB) | `sport5_get_user_team` (any user) |
+| `list_snapshots` (local) | `sport5_get_league_table` |
+| `analyze_ownership` (local) | `snapshot_top_teams` |
+
+So the player market, the rules and the fixtures are public, but **anything about
+teams, leagues or standings — including the weekly snapshot/learning feature —
+needs your session cookie.** It's a single paste (no OAuth); cookie-gated tools
+return a clear "set SPORT5_COOKIE" message if it's missing or expired.
 
 ## Usage
 

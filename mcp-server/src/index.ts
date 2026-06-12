@@ -164,7 +164,8 @@ server.registerTool(
     title: "Get a user's team",
     description:
       "Get any user's squad by userId (e.g. a top-ranked rival from a league table). " +
-      "Same shape as get_my_team, including bonuses used and round points.",
+      "Same shape as get_my_team, including bonuses used and round points. " +
+      "Requires SPORT5_COOKIE (this endpoint is login-gated, even for other users).",
     inputSchema: {
       userId: z.number().int().describe("The user id whose squad to fetch."),
     },
@@ -172,6 +173,7 @@ server.registerTool(
   },
   async (args) => {
     try {
+      requireCookie("Reading a user's team");
       const data = await s5get("/UserTeam/GetUserAndTeam", { userId: args.userId });
       const team = summarizeTeam(data);
       const summary =
@@ -240,7 +242,8 @@ server.registerTool(
     description:
       "Get a league's standings, paginated. Pass leagueId for a private league, " +
       "teamId for a favourite-team league, or leave both null for the overall " +
-      "Sport5 league. Each page returns ~50 teams; use pageIndex to advance.",
+      "Sport5 league. Each page returns ~50 teams; use pageIndex to advance. " +
+      "Requires SPORT5_COOKIE (league data is login-gated).",
     inputSchema: {
       leagueId: z.number().int().nullable().optional().describe("Private league id (null for general)."),
       teamId: z.number().int().nullable().optional().describe("Favourite national-team id (null for general)."),
@@ -252,6 +255,7 @@ server.registerTool(
   },
   async (args) => {
     try {
+      requireCookie("Reading a league table");
       const data = await s5get("/CustomLeagues/GetLeagueData", {
         leagueId: args.leagueId ?? null,
         teamId: args.teamId ?? null,
@@ -337,7 +341,8 @@ server.registerTool(
       "Capture the current top-N teams in a league (default the overall league), " +
       "fetch each of their squads + the full market, and save a timestamped JSON " +
       "snapshot locally for week-over-week learning. Fetches N+ requests, so keep " +
-      "topN reasonable (default 50).",
+      "topN reasonable (default 50). Requires SPORT5_COOKIE (league + squad data " +
+      "is login-gated).",
     inputSchema: {
       topN: z.number().int().min(1).max(100).optional().describe("How many top teams to capture (default 50)."),
       leagueId: z.number().int().nullable().optional().describe("League id (null = overall Sport5 league)."),
@@ -347,6 +352,7 @@ server.registerTool(
   },
   async (args) => {
     try {
+      requireCookie("Snapshotting top teams");
       const topN = args.topN ?? 50;
       const snapshot = await buildSnapshot({
         topN,

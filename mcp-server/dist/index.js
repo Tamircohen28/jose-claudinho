@@ -21771,7 +21771,7 @@ server.registerTool(
   "sport5_get_user_team",
   {
     title: "Get a user's team",
-    description: "Get any user's squad by userId (e.g. a top-ranked rival from a league table). Same shape as get_my_team, including bonuses used and round points.",
+    description: "Get any user's squad by userId (e.g. a top-ranked rival from a league table). Same shape as get_my_team, including bonuses used and round points. Requires SPORT5_COOKIE (this endpoint is login-gated, even for other users).",
     inputSchema: {
       userId: external_exports.number().int().describe("The user id whose squad to fetch.")
     },
@@ -21779,6 +21779,7 @@ server.registerTool(
   },
   async (args) => {
     try {
+      requireCookie("Reading a user's team");
       const data = await s5get("/UserTeam/GetUserAndTeam", { userId: args.userId });
       const team = summarizeTeam(data);
       const summary = `${team.teamName} (${team.managerName}) \u2014 ${team.usedBudgetM}M used, formation ${team.formation}, ${team.points} pts. Captain id ${team.captainId}, vice id ${team.viceCaptainId}.`;
@@ -21827,7 +21828,7 @@ server.registerTool(
   "sport5_get_league_table",
   {
     title: "Get league table",
-    description: "Get a league's standings, paginated. Pass leagueId for a private league, teamId for a favourite-team league, or leave both null for the overall Sport5 league. Each page returns ~50 teams; use pageIndex to advance.",
+    description: "Get a league's standings, paginated. Pass leagueId for a private league, teamId for a favourite-team league, or leave both null for the overall Sport5 league. Each page returns ~50 teams; use pageIndex to advance. Requires SPORT5_COOKIE (league data is login-gated).",
     inputSchema: {
       leagueId: external_exports.number().int().nullable().optional().describe("Private league id (null for general)."),
       teamId: external_exports.number().int().nullable().optional().describe("Favourite national-team id (null for general)."),
@@ -21839,6 +21840,7 @@ server.registerTool(
   },
   async (args) => {
     try {
+      requireCookie("Reading a league table");
       const data = await s5get("/CustomLeagues/GetLeagueData", {
         leagueId: args.leagueId ?? null,
         teamId: args.teamId ?? null,
@@ -21898,7 +21900,7 @@ server.registerTool(
   "snapshot_top_teams",
   {
     title: "Snapshot top teams",
-    description: "Capture the current top-N teams in a league (default the overall league), fetch each of their squads + the full market, and save a timestamped JSON snapshot locally for week-over-week learning. Fetches N+ requests, so keep topN reasonable (default 50).",
+    description: "Capture the current top-N teams in a league (default the overall league), fetch each of their squads + the full market, and save a timestamped JSON snapshot locally for week-over-week learning. Fetches N+ requests, so keep topN reasonable (default 50). Requires SPORT5_COOKIE (league + squad data is login-gated).",
     inputSchema: {
       topN: external_exports.number().int().min(1).max(100).optional().describe("How many top teams to capture (default 50)."),
       leagueId: external_exports.number().int().nullable().optional().describe("League id (null = overall Sport5 league)."),
@@ -21908,6 +21910,7 @@ server.registerTool(
   },
   async (args) => {
     try {
+      requireCookie("Snapshotting top teams");
       const topN = args.topN ?? 50;
       const snapshot = await buildSnapshot({
         topN,
