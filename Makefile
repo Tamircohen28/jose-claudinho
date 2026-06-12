@@ -5,7 +5,7 @@ MCP         := mcp-server
 PLUGIN      := jose-claudinho
 MARKETPLACE := jose-claudinho
 
-.PHONY: help install typecheck build clean bundle plugin
+.PHONY: help install typecheck build clean bundle plugin hooks
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -48,3 +48,7 @@ plugin: bundle ## Build, then add the local marketplace & install the plugin (id
 		claude plugin install $(PLUGIN)@$(MARKETPLACE); \
 	fi
 	@echo "✓ done — restart Claude Code (or /plugin) to load the latest build."
+
+hooks: ## Enable the local git hooks (blocks direct pushes to main)
+	git config core.hooksPath .githooks
+	@echo "✓ core.hooksPath = .githooks — direct pushes to main are now blocked locally."

@@ -1,0 +1,28 @@
+#!/bin/sh
+# Block direct pushes to protected branches — use a pull request instead.
+#
+# This is a CLIENT-SIDE guardrail (the repo is a free private repo, where GitHub
+# gates server-side branch protection behind Pro). It only protects this clone and
+# can be bypassed with `git push --no-verify`. Enable it with `make hooks`
+# (which sets core.hooksPath to .githooks).
+#
+# git passes candidate refs on stdin as:  <local ref> <local sha> <remote ref> <remote sha>
+
+protected_branches="main"
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+	for branch in $protected_branches; do
+		if [ "$remote_ref" = "refs/heads/$branch" ]; then
+			echo "✗ Direct push to '$branch' is blocked — open a pull request instead." >&2
+			echo "" >&2
+			echo "    git switch -c my-change" >&2
+			echo "    git push -u origin my-change" >&2
+			echo "    gh pr create --base $branch" >&2
+			echo "" >&2
+			echo "  (override with 'git push --no-verify' only if you truly mean it)" >&2
+			exit 1
+		fi
+	done
+done
+
+exit 0
