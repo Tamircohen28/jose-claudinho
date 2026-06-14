@@ -5,12 +5,12 @@ Guidance for Claude Code sessions working in this repo.
 ## Project overview
 
 José Claudinho is a **Claude Code plugin** that helps a user manage their team in
-**Sport5 Fantasy World Cup 2026**. It bundles an MCP server (`fantasy-wc`), a skill
-(`weekly-squad-advisor`) and three slash commands. It reads the player market, the
-user's team, rival top teams, league tables and World Cup fixtures; snapshots the
-best teams each round into local JSON; and recommends transfers, captain and lineup
-under the official game rules. It is **read-and-recommend only** — it never mutates
-the user's team.
+**Sport5 Fantasy World Cup 2026**. It bundles an MCP server (`fantasy-wc`), skills
+and slash commands. It reads the player market, the user's team, rival top teams,
+league tables and World Cup fixtures; snapshots the best teams each round into local
+JSON; recommends transfers, captain and lineup under the official game rules; and
+reports round utilization (played vs upcoming) and league watchlists. It is
+**read-and-recommend only** — it never mutates the user's team.
 
 ## Key file locations
 
@@ -19,16 +19,21 @@ the user's team.
 | `.claude-plugin/plugin.json` | Plugin manifest (name, version, author) |
 | `.claude-plugin/marketplace.json` | Local marketplace entry for `/plugin install` |
 | `.mcp.json` | MCP server registration (`fantasy-wc`, env passthrough) |
-| `mcp-server/src/index.ts` | Registers all 10 MCP tools (Zod schemas + handlers) |
+| `mcp-server/src/index.ts` | Registers all 13 MCP tools (Zod schemas + handlers) |
 | `mcp-server/src/rules.ts` | **Authoritative** encoded game rules (budgets, caps, scoring, chips) |
 | `mcp-server/src/sport5Client.ts` | Authenticated Sport5 API client + cookie guards |
 | `mcp-server/src/transform.ts` | Raw API → slim DTO transforms |
 | `mcp-server/src/analysis.ts` | `buildSnapshot()` + `analyzeOwnership()` |
+| `mcp-server/src/nations.ts` | National team registry + Hebrew→TheSportsDB aliases |
+| `mcp-server/src/roundUtilization.ts` | Round utilization + league watchlist logic |
 | `mcp-server/src/storage.ts` | Local JSON snapshot read/write |
 | `mcp-server/src/fixtures.ts` | World Cup fixtures via TheSportsDB |
 | `mcp-server/dist/index.js` | **Committed** single-file esbuild bundle (the runtime artifact) |
 | `skills/weekly-squad-advisor/SKILL.md` | The 10-step weekly recommendation procedure |
-| `commands/` | `/squad-advice`, `/snapshot-league`, `/fantasy-setup` |
+| `skills/team-round-utilization/SKILL.md` | Per-team round player status |
+| `skills/league-round-utilization/SKILL.md` | League played vs upcoming table |
+| `skills/league-watchlist/SKILL.md` | League games-of-interest watchlist |
+| `commands/` | `/squad-advice`, `/snapshot-league`, `/fantasy-setup`, `/team-round-utilization`, `/league-round-utilization`, `/league-watchlist` |
 
 ## Build & test commands
 

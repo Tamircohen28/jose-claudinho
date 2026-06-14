@@ -22,6 +22,11 @@ import { rulesForStage } from "./rules.js";
 import { getFixtures } from "./fixtures.js";
 import { buildSnapshot, analyzeOwnership } from "./analysis.js";
 import { writeSnapshot, listSnapshots, readSnapshot, dataDir } from "./storage.js";
+import {
+  getTeamRoundUtilization,
+  getLeagueRoundUtilization,
+  getLeagueWatchlist,
+} from "./roundUtilization.js";
 
 const server = new McpServer({
   name: "fantasy-wc",
@@ -275,6 +280,7 @@ server.registerTool(
       }));
       const structured = {
         leagueName: data.leagueName,
+        roundId: data.roundId ?? null,
         pageIndex: args.pageIndex ?? 0,
         returned: teams.length,
         teams,
@@ -477,6 +483,134 @@ server.registerTool(
       `MID ${rules.scoring.goalByPosition.MID}/FWD ${rules.scoring.goalByPosition.FWD}; assist ${rules.scoring.assist}; ` +
       `clean sheet (GK/DEF) 4; captain x2.`;
     return result(rules, summary);
+  }
+);
+
+// ----------------------------------------------------------------------------
+// 11. Team round utilization.
+// ----------------------------------------------------------------------------
+server.registerTool(
+  "team_round_utilization",
+  {
+    title: "Team round utilization",
+    description:
+      "For one fantasy team, list all 15 players with their national-team fixture in the " +
+      "current round, whether that match already played, and round points if available. " +
+      "Requires SPORT5_COOKIE.",
+    inputSchema: {
+      userId: z.number().int().optional().describe("User id (default: your connected team)."),
+      leagueId: z.number().int().nullable().optional().describe("League id for teamName lookup."),
+      teamName: z.string().optional().describe("Fantasy team name substring to find userId in league."),
+      roundId: z.number().int().optional().describe("Sport5 fantasy round (default from team/league)."),
+      stage: z
+        .enum(["group", "r32", "r16", "qf", "sf", "final"])
+        .optional()
+        .describe("Tournament stage (default group)."),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  },
+  async (args) => {
+    try {
+      const data = await getTeamRoundUtilization(args);
+      const summary =
+        `${data.teamName} — round ${data.roundId} (${data.stage}): ` +
+        `${data.summary.played} played, ${data.summary.upcoming} upcoming / ${data.summary.total}.\n` +
+        data.players
+          .slice(0, 15)
+          .map(
+            (p) =>
+              `• ${p.name} (${p.nationNameHe}) — ${p.played ? `played ${p.roundPoints ?? 0}pts` : `upcoming ${p.fixture?.dateIsrael ?? ""} ${p.fixture?.timeIsrael ?? ""}`}`
+          )
+          .join("\n");
+      return result(data, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+
+// ----------------------------------------------------------------------------
+// 12. League round utilization.
+// ----------------------------------------------------------------------------
+server.registerTool(
+  "league_round_utilization",
+  {
+    title: "League round utilization",
+    description:
+      "For a league, show how many players per fantasy team have already played vs still " +
+      "waiting on their national-team match this round (all 15 squad players). " +
+      "Pass leagueName or leagueId. Max 50 teams. Requires SPORT5_COOKIE.",
+    inputSchema: {
+      leagueId: z.number().int().nullable().optional().describe("Private league id."),
+      leagueName: z.string().optional().describe("League name substring (from your leagues)."),
+      roundId: z.number().int().optional().describe("Sport5 fantasy round (default from league)."),
+      stage: z
+        .enum(["group", "r32", "r16", "qf", "sf", "final"])
+        .optional()
+        .describe("Tournament stage (default group)."),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  },
+  async (args) => {
+    try {
+      const data = await getLeagueRoundUtilization(args);
+      const summary =
+        `${data.leagueName ?? "League"} — round ${data.roundId}: ${data.teams.length} teams.\n` +
+        data.teams
+          .map(
+            (t) =>
+              `• ${t.teamName}: ${t.empty ? "no players" : `${t.played} played / ${t.upcoming} upcoming (${t.total})`}`
+          )
+          .join("\n");
+      return result(data, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+
+// ----------------------------------------------------------------------------
+// 13. League watchlist (games of interest).
+// ----------------------------------------------------------------------------
+server.registerTool(
+  "league_watchlist",
+  {
+    title: "League watchlist",
+    description:
+      "For a league, list upcoming round fixtures where at least one league player is " +
+      "involved — grouped by match with fantasy-team → player mapping. " +
+      "Requires SPORT5_COOKIE.",
+    inputSchema: {
+      leagueId: z.number().int().nullable().optional().describe("Private league id."),
+      leagueName: z.string().optional().describe("League name substring (from your leagues)."),
+      roundId: z.number().int().optional().describe("Sport5 fantasy round (default from league)."),
+      stage: z
+        .enum(["group", "r32", "r16", "qf", "sf", "final"])
+        .optional()
+        .describe("Tournament stage (default group)."),
+      includePlayed: z
+        .boolean()
+        .optional()
+        .describe("Include already-played fixtures (default false)."),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  },
+  async (args) => {
+    try {
+      const data = await getLeagueWatchlist(args);
+      const summary =
+        `${data.leagueName ?? "League"} watchlist — round ${data.roundId}, ${data.fixtures.length} fixtures.\n` +
+        data.fixtures
+          .slice(0, 10)
+          .map(
+            (f) =>
+              `${f.fixture.dateIsrael} ${f.fixture.timeIsrael} — ${f.fixture.homeTeam} vs ${f.fixture.awayTeam} (${f.appearanceCount} league picks)`
+          )
+          .join("\n");
+      return result(data, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
   }
 );
 

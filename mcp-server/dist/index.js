@@ -21316,6 +21316,7 @@ function getStage(key2) {
   const k = (key2 || "group").toLowerCase();
   return STAGES[k] || STAGES.group;
 }
+var LEAGUE_UTILIZATION_MAX_TEAMS = 50;
 function rulesForStage(stageKey) {
   const stage = getStage(stageKey);
   return {
@@ -21511,6 +21512,94 @@ async function getFixtures(opts) {
   const note = fixtures.length ? void 0 : `No fixtures returned for World Cup league ${leagueId()} season ${season()}. The free data source may not have 2026 fixtures populated yet.`;
   return { source: url, count: fixtures.length, fixtures: fixtures.slice(0, limit), note };
 }
+var PLAYED_STATUSES = /* @__PURE__ */ new Set([
+  "match finished",
+  "finished",
+  "ft",
+  "aet",
+  "pen",
+  "full time",
+  "game finished"
+]);
+function isFixturePlayed(f) {
+  if (f.homeScore != null && f.awayScore != null) return true;
+  const st = (f.status || "").toLowerCase();
+  if (PLAYED_STATUSES.has(st)) return true;
+  if (st.includes("finished") || st.includes("full time")) return true;
+  if (f.date && f.time) {
+    const kickoff = /* @__PURE__ */ new Date(`${f.date}T${f.time}Z`);
+    if (!Number.isNaN(kickoff.getTime()) && kickoff.getTime() + 2.5 * 36e5 < Date.now()) {
+      return true;
+    }
+  }
+  return false;
+}
+async function getAllFixtures() {
+  const res = await getFixtures({ when: "all", limit: 500 });
+  return res.fixtures;
+}
+function groupFixturesByMatchday(fixtures) {
+  const sorted = [...fixtures].sort((a, b) => {
+    const da = `${a.date || ""} ${a.time || ""}`;
+    const db = `${b.date || ""} ${b.time || ""}`;
+    return da.localeCompare(db);
+  });
+  const days = [];
+  const byDay = /* @__PURE__ */ new Map();
+  for (const f of sorted) {
+    const day = f.date || "unknown";
+    if (!byDay.has(day)) {
+      byDay.set(day, []);
+      days.push(day);
+    }
+    byDay.get(day).push(f);
+  }
+  return days.map((d) => byDay.get(d));
+}
+function fixturesForFantasyRound(roundId, stage, allFixtures) {
+  if (!allFixtures.length) return [];
+  const stageKey = (stage || "group").toLowerCase();
+  if (stageKey === "group") {
+    const byIntRound = allFixtures.filter((f) => String(f.round) === String(roundId));
+    if (byIntRound.length >= 8) return byIntRound;
+    const matchdays = groupFixturesByMatchday(allFixtures);
+    const groupDays = matchdays.slice(0, 3);
+    const idx = Math.max(0, Math.min(roundId - 1, groupDays.length - 1));
+    return groupDays[idx] || [];
+  }
+  const knockout = allFixtures.filter((f) => {
+    const r = f.round != null ? Number(f.round) : NaN;
+    return !Number.isNaN(r) && r === roundId;
+  });
+  if (knockout.length) return knockout;
+  const sorted = [...allFixtures].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+  const knockoutStart = 3;
+  const kIdx = Math.max(0, roundId - knockoutStart - 1);
+  const chunkSize = stageKey === "r32" ? 16 : stageKey === "r16" ? 8 : stageKey === "qf" ? 4 : stageKey === "sf" ? 2 : 1;
+  const start = knockoutStart * 24 + kIdx * chunkSize;
+  return sorted.slice(start, start + chunkSize);
+}
+var HEBREW_WEEKDAYS = ["\u05D0\u05F3", "\u05D1\u05F3", "\u05D2\u05F3", "\u05D3\u05F3", "\u05D4\u05F3", "\u05D5\u05F3", "\u05E9\u05F3"];
+function formatIsraelTime(date3, time3) {
+  if (!date3) return { dateHe: "?", timeHe: "?", iso: null };
+  const t = time3 || "00:00:00";
+  const utc = /* @__PURE__ */ new Date(`${date3}T${t}Z`);
+  if (Number.isNaN(utc.getTime())) {
+    return { dateHe: date3, timeHe: time3 || "?", iso: null };
+  }
+  const israelMs = utc.getTime() + 3 * 36e5;
+  const il = new Date(israelMs);
+  const dd = String(il.getUTCDate()).padStart(2, "0");
+  const mm = String(il.getUTCMonth() + 1).padStart(2, "0");
+  const hh = String(il.getUTCHours()).padStart(2, "0");
+  const min = String(il.getUTCMinutes()).padStart(2, "0");
+  const wd = HEBREW_WEEKDAYS[il.getUTCDay()];
+  return {
+    dateHe: `\u05D9\u05D5\u05DD ${wd} ${dd}.${mm}`,
+    timeHe: `${hh}:${min}`,
+    iso: il.toISOString()
+  };
+}
 
 // src/analysis.ts
 async function buildSnapshot(opts) {
@@ -21687,6 +21776,393 @@ async function readSnapshot(fileOrLatest) {
   const full = path.join(dataDir(), path.basename(fileOrLatest));
   const raw = await fs.readFile(full, "utf8");
   return JSON.parse(raw);
+}
+
+// src/nations.ts
+var HEBREW_ALIASES = {
+  "\u05D0\u05E8\u05D2\u05E0\u05D8\u05D9\u05E0\u05D4": { names: ["Argentina"], flag: "\u{1F1E6}\u{1F1F7}" },
+  "\u05D1\u05E8\u05D6\u05D9\u05DC": { names: ["Brazil"], flag: "\u{1F1E7}\u{1F1F7}" },
+  "\u05E6\u05E8\u05E4\u05EA": { names: ["France"], flag: "\u{1F1EB}\u{1F1F7}" },
+  "\u05D0\u05E0\u05D2\u05DC\u05D9\u05D4": { names: ["England"], flag: "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E007F}" },
+  "\u05E1\u05E4\u05E8\u05D3": { names: ["Spain"], flag: "\u{1F1EA}\u{1F1F8}" },
+  "\u05D2\u05E8\u05DE\u05E0\u05D9\u05D4": { names: ["Germany"], flag: "\u{1F1E9}\u{1F1EA}" },
+  "\u05E4\u05D5\u05E8\u05D8\u05D5\u05D2\u05DC": { names: ["Portugal"], flag: "\u{1F1F5}\u{1F1F9}" },
+  "\u05D4\u05D5\u05DC\u05E0\u05D3": { names: ["Netherlands", "Holland"], flag: "\u{1F1F3}\u{1F1F1}" },
+  "\u05D1\u05DC\u05D2\u05D9\u05D4": { names: ["Belgium"], flag: "\u{1F1E7}\u{1F1EA}" },
+  "\u05D0\u05D9\u05D8\u05DC\u05D9\u05D4": { names: ["Italy"], flag: "\u{1F1EE}\u{1F1F9}" },
+  "\u05E7\u05E8\u05D5\u05D0\u05D8\u05D9\u05D4": { names: ["Croatia"], flag: "\u{1F1ED}\u{1F1F7}" },
+  "\u05D0\u05D5\u05E8\u05D5\u05D2\u05D5\u05D0\u05D9": { names: ["Uruguay"], flag: "\u{1F1FA}\u{1F1FE}" },
+  "\u05E7\u05D5\u05DC\u05D5\u05DE\u05D1\u05D9\u05D4": { names: ["Colombia"], flag: "\u{1F1E8}\u{1F1F4}" },
+  "\u05DE\u05E7\u05E1\u05D9\u05E7\u05D5": { names: ["Mexico"], flag: "\u{1F1F2}\u{1F1FD}" },
+  "\u05E7\u05E0\u05D3\u05D4": { names: ["Canada"], flag: "\u{1F1E8}\u{1F1E6}" },
+  "\u05DE\u05E8\u05D5\u05E7\u05D5": { names: ["Morocco"], flag: "\u{1F1F2}\u{1F1E6}" },
+  "\u05D9\u05E4\u05DF": { names: ["Japan"], flag: "\u{1F1EF}\u{1F1F5}" },
+  "\u05D3\u05E8\u05D5\u05DD \u05E7\u05D5\u05E8\u05D9\u05D0\u05D4": { names: ["South Korea", "Korea Republic"], flag: "\u{1F1F0}\u{1F1F7}" },
+  "\u05D0\u05D5\u05E1\u05D8\u05E8\u05DC\u05D9\u05D4": { names: ["Australia"], flag: "\u{1F1E6}\u{1F1FA}" },
+  "\u05E9\u05D5\u05D5\u05D9\u05E5": { names: ["Switzerland"], flag: "\u{1F1E8}\u{1F1ED}" },
+  "\u05D3\u05E0\u05DE\u05E8\u05E7": { names: ["Denmark"], flag: "\u{1F1E9}\u{1F1F0}" },
+  "\u05E9\u05D5\u05D5\u05D3\u05D9\u05D4": { names: ["Sweden"], flag: "\u{1F1F8}\u{1F1EA}" },
+  "\u05E4\u05D5\u05DC\u05D9\u05DF": { names: ["Poland"], flag: "\u{1F1F5}\u{1F1F1}" },
+  "\u05E1\u05E0\u05D2\u05DC": { names: ["Senegal"], flag: "\u{1F1F8}\u{1F1F3}" },
+  "\u05DE\u05E6\u05E8\u05D9\u05DD": { names: ["Egypt"], flag: "\u{1F1EA}\u{1F1EC}" },
+  "\u05D0\u05DC\u05D2\u05F3\u05D9\u05E8\u05D9\u05D4": { names: ["Algeria"], flag: "\u{1F1E9}\u{1F1FF}" },
+  "\u05D8\u05D5\u05E0\u05D9\u05D6\u05D9\u05D4": { names: ["Tunisia"], flag: "\u{1F1F9}\u{1F1F3}" },
+  "\u05E1\u05E2\u05D5\u05D3\u05D9\u05D4": { names: ["Saudi Arabia"], flag: "\u{1F1F8}\u{1F1E6}" },
+  "\u05D0\u05D9\u05E8\u05D0\u05DF": { names: ["Iran"], flag: "\u{1F1EE}\u{1F1F7}" },
+  "\u05E2\u05D9\u05E8\u05D0\u05E7": { names: ["Iraq"], flag: "\u{1F1EE}\u{1F1F6}" },
+  "\u05D0\u05D5\u05E1\u05D8\u05E8\u05D9\u05D4": { names: ["Austria"], flag: "\u{1F1E6}\u{1F1F9}" },
+  "\u05E0\u05D5\u05E8\u05D5\u05D5\u05D2\u05D9\u05D4": { names: ["Norway"], flag: "\u{1F1F3}\u{1F1F4}" },
+  "\u05D0\u05E7\u05D5\u05D5\u05D3\u05D5\u05E8": { names: ["Ecuador"], flag: "\u{1F1EA}\u{1F1E8}" },
+  "\u05D7\u05D5\u05E3 \u05D4\u05E9\u05DF": { names: ["Ivory Coast", "Cote d'Ivoire"], flag: "\u{1F1E8}\u{1F1EE}" },
+  "\u05DB\u05E3 \u05D5\u05E8\u05D3\u05D4": { names: ["Cape Verde"], flag: "\u{1F1E8}\u{1F1FB}" },
+  "\u05D0\u05D5\u05D6\u05D1\u05E7\u05D9\u05E1\u05D8\u05DF": { names: ["Uzbekistan"], flag: "\u{1F1FA}\u{1F1FF}" },
+  "\u05E0\u05D9\u05D5 \u05D6\u05D9\u05DC\u05E0\u05D3": { names: ["New Zealand"], flag: "\u{1F1F3}\u{1F1FF}" },
+  "\u05D9\u05E8\u05D3\u05DF": { names: ["Jordan"], flag: "\u{1F1EF}\u{1F1F4}" },
+  "\u05E7\u05D5\u05E0\u05D2\u05D5": { names: ["Congo DR", "DR Congo"], flag: "\u{1F1E8}\u{1F1E9}" },
+  "\u05D0\u05D9\u05E8\u05DC\u05E0\u05D3": { names: ["Republic of Ireland", "Ireland"], flag: "\u{1F1EE}\u{1F1EA}" },
+  "\u05E1\u05DB\u05D5\u05DD": { names: ["Scotland"], flag: "\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}" },
+  "\u05D5\u05D5\u05DC\u05D9\u05D6": { names: ["Wales"], flag: "\u{1F3F4}\u{E0067}\u{E0062}\u{E0077}\u{E006C}\u{E0073}\u{E007F}" },
+  "\u05E6\u05F3\u05D0\u05D3\u05D4": { names: ["Czech Republic", "Czechia"], flag: "\u{1F1E8}\u{1F1FF}" },
+  "\u05E8\u05D5\u05DE\u05E0\u05D9\u05D4": { names: ["Romania"], flag: "\u{1F1F7}\u{1F1F4}" },
+  "\u05D0\u05D5\u05E7\u05E8\u05D0\u05D9\u05E0\u05D4": { names: ["Ukraine"], flag: "\u{1F1FA}\u{1F1E6}" },
+  "\u05E7\u05D5\u05E1\u05D8\u05D4 \u05E8\u05D9\u05E7\u05D4": { names: ["Costa Rica"], flag: "\u{1F1E8}\u{1F1F7}" },
+  "\u05E4\u05E8\u05D2\u05D5\u05D0\u05D9": { names: ["Paraguay"], flag: "\u{1F1F5}\u{1F1FE}" },
+  "\u05E6\u05F3\u05D9\u05DC\u05D9": { names: ["Chile"], flag: "\u{1F1E8}\u{1F1F1}" },
+  "\u05E4\u05E8\u05D5": { names: ["Peru"], flag: "\u{1F1F5}\u{1F1EA}" },
+  "\u05D5\u05E0\u05E6\u05D5\u05D0\u05DC\u05D4": { names: ["Venezuela"], flag: "\u{1F1FB}\u{1F1EA}" },
+  "\u05D0\u05D9\u05E7\u05D5\u05D0\u05D3\u05D5\u05E8": { names: ["Ecuador"], flag: "\u{1F1EA}\u{1F1E8}" },
+  "\u05D0\u05E8\u05D4\u05F4\u05D1": { names: ["United States", "USA"], flag: "\u{1F1FA}\u{1F1F8}" },
+  "\u05D0\u05E8\u05E6\u05D5\u05EA \u05D4\u05D1\u05E8\u05D9\u05EA": { names: ["United States", "USA"], flag: "\u{1F1FA}\u{1F1F8}" },
+  "\u05D8\u05D5\u05E8\u05E7\u05D9\u05D4": { names: ["Turkey", "Turkiye"], flag: "\u{1F1F9}\u{1F1F7}" },
+  "\u05E1\u05E8\u05D1\u05D9\u05D4": { names: ["Serbia"], flag: "\u{1F1F7}\u{1F1F8}" },
+  "\u05D9\u05D5\u05D5\u05DF": { names: ["Greece"], flag: "\u{1F1EC}\u{1F1F7}" },
+  "\u05D4\u05D5\u05E0\u05D2\u05E8\u05D9\u05D4": { names: ["Hungary"], flag: "\u{1F1ED}\u{1F1FA}" },
+  "\u05E1\u05DC\u05D5\u05D1\u05E0\u05D9\u05D4": { names: ["Slovenia"], flag: "\u{1F1F8}\u{1F1EE}" },
+  "\u05E1\u05DC\u05D5\u05D1\u05D0\u05E7\u05D9\u05D4": { names: ["Slovakia"], flag: "\u{1F1F8}\u{1F1F0}" },
+  "\u05D0\u05DC \u05E1\u05DC\u05D5\u05D5\u05D3\u05D9\u05D4": { names: ["Slovenia"], flag: "\u{1F1F8}\u{1F1EE}" },
+  "\u05E7\u05D0\u05DE\u05E8\u05D5\u05DF": { names: ["Cameroon"], flag: "\u{1F1E8}\u{1F1F2}" },
+  "\u05D2\u05D0\u05E0\u05D4": { names: ["Ghana"], flag: "\u{1F1EC}\u{1F1ED}" },
+  "\u05E0\u05D9\u05D2\u05E8\u05D9\u05D4": { names: ["Nigeria"], flag: "\u{1F1F3}\u{1F1EC}" },
+  "\u05D0\u05EA\u05D9\u05D5\u05E4\u05D9\u05D4": { names: ["Ethiopia"], flag: "\u{1F1EA}\u{1F1F9}" },
+  "\u05E7\u05D8\u05D0\u05E8": { names: ["Qatar"], flag: "\u{1F1F6}\u{1F1E6}" },
+  "\u05D0\u05D5\u05D0\u05D6\u05D1\u05E7\u05D9\u05E1\u05D8\u05DF": { names: ["Uzbekistan"], flag: "\u{1F1FA}\u{1F1FF}" },
+  "\u05E4\u05E0\u05DE\u05D4": { names: ["Panama"], flag: "\u{1F1F5}\u{1F1E6}" },
+  "\u05D4\u05D5\u05D3\u05D5": { names: ["India"], flag: "\u{1F1EE}\u{1F1F3}" },
+  "\u05E6\u05D9\u05D9\u05DF": { names: ["China", "China PR"], flag: "\u{1F1E8}\u{1F1F3}" },
+  "\u05D0\u05D9\u05E1\u05DC\u05E0\u05D3": { names: ["Iceland"], flag: "\u{1F1EE}\u{1F1F8}" },
+  "\u05E4\u05D9\u05E0\u05DC\u05E0\u05D3": { names: ["Finland"], flag: "\u{1F1EB}\u{1F1EE}" },
+  "\u05D0\u05DC\u05D1\u05D9\u05D4": { names: ["Albania"], flag: "\u{1F1E6}\u{1F1F1}" },
+  "\u05D1\u05D5\u05E1\u05E0\u05D9\u05D4 \u05D5\u05D4\u05E8\u05E6\u05D2\u05D5\u05D1\u05D9\u05E0\u05D4": { names: ["Bosnia and Herzegovina", "Bosnia"], flag: "\u{1F1E7}\u{1F1E6}" },
+  "\u05DE\u05E7\u05D3\u05D5\u05E0\u05D9\u05D4": { names: ["North Macedonia", "Macedonia"], flag: "\u{1F1F2}\u{1F1F0}" },
+  "\u05D1\u05DC\u05D2\u05E8\u05D9\u05D4": { names: ["Bulgaria"], flag: "\u{1F1E7}\u{1F1EC}" }
+};
+function normalizeHe(s) {
+  return s.trim().replace(/\u05f3/g, "'").replace(/\u05f4/g, '"');
+}
+function lookupAliases(nameHe) {
+  const n = normalizeHe(nameHe);
+  if (HEBREW_ALIASES[n]) return HEBREW_ALIASES[n];
+  for (const [key2, val] of Object.entries(HEBREW_ALIASES)) {
+    if (n.includes(key2) || key2.includes(n)) return val;
+  }
+  return { names: [nameHe] };
+}
+function buildNationRegistry(marketRaw) {
+  const byId = {};
+  const list = [];
+  for (const group of marketRaw || []) {
+    const id = group.id ?? group.teamId;
+    const nameHe = (group.name || group.teamName || "").trim();
+    if (id == null || !nameHe) continue;
+    const alias = lookupAliases(nameHe);
+    const entry = {
+      nationTeamId: Number(id),
+      nameHe,
+      sportsDbNames: alias.names,
+      flagEmoji: alias.flag ?? null
+    };
+    byId[entry.nationTeamId] = entry;
+    list.push(entry);
+  }
+  return { byId, list };
+}
+function teamMatches(name, aliases) {
+  if (!name) return false;
+  const lower = name.toLowerCase();
+  return aliases.some((a) => lower.includes(a.toLowerCase()) || a.toLowerCase().includes(lower));
+}
+function fixtureInvolvesNation(f, nation) {
+  return teamMatches(f.homeTeam, nation.sportsDbNames) || teamMatches(f.awayTeam, nation.sportsDbNames);
+}
+function matchNationToFixture(nationTeamId, roundFixtures, registry2) {
+  const nation = registry2[nationTeamId];
+  if (!nation) return null;
+  return roundFixtures.find((f) => fixtureInvolvesNation(f, nation)) ?? null;
+}
+function opponentForNation(f, nation) {
+  if (teamMatches(f.homeTeam, nation.sportsDbNames)) return f.awayTeam;
+  if (teamMatches(f.awayTeam, nation.sportsDbNames)) return f.homeTeam;
+  return null;
+}
+
+// src/roundUtilization.ts
+async function loadMarketAndNations() {
+  const marketRaw = await s5get("/Players/GetTeamsAndPlayers");
+  return { marketRaw, ...buildNationRegistry(marketRaw) };
+}
+async function resolveLeague(opts) {
+  if (opts.leagueId != null) {
+    const data = await s5get("/CustomLeagues/GetLeagueData", {
+      leagueId: opts.leagueId,
+      teamId: null,
+      isPerRound: true,
+      pageIndex: 0,
+      searchText: ""
+    });
+    return { leagueId: opts.leagueId, leagueName: data.leagueName ?? null };
+  }
+  if (opts.leagueName) {
+    const q = opts.leagueName.toLowerCase();
+    const leagues = await s5get("/CustomLeagues/GetLeaguesSummary");
+    const match = (leagues || []).find(
+      (l) => (l.leagueName || "").toLowerCase().includes(q)
+    );
+    if (!match) {
+      throw new Sport5Error(`No league matching "${opts.leagueName}" in your leagues list.`);
+    }
+    return { leagueId: match.id, leagueName: match.leagueName };
+  }
+  return { leagueId: null, leagueName: "Overall league" };
+}
+async function fetchLeagueTeams(leagueId2, maxTeams = LEAGUE_UTILIZATION_MAX_TEAMS) {
+  const teams = [];
+  let roundId = null;
+  let leagueName = null;
+  let pageIndex = 0;
+  while (teams.length < maxTeams) {
+    const data = await s5get("/CustomLeagues/GetLeagueData", {
+      leagueId: leagueId2,
+      teamId: null,
+      isPerRound: true,
+      pageIndex,
+      searchText: ""
+    });
+    leagueName = data.leagueName ?? leagueName;
+    roundId = data.roundId ?? roundId;
+    const page = data.teams || [];
+    if (!page.length) break;
+    teams.push(...page);
+    if (page.length < 50) break;
+    pageIndex++;
+  }
+  if (teams.length > maxTeams) {
+    throw new Sport5Error(
+      `League has more than ${maxTeams} teams. Pass a private league id/name (e.g. a small league).`
+    );
+  }
+  return { teams, roundId, leagueName };
+}
+function buildPlayerRoundStatus(player, roundFixtures, registry2) {
+  const nation = registry2[player.nationTeamId];
+  const fixture = matchNationToFixture(player.nationTeamId, roundFixtures, registry2);
+  const played = fixture ? isFixturePlayed(fixture) : false;
+  const il = fixture ? formatIsraelTime(fixture.date, fixture.time) : null;
+  return {
+    playerId: player.id,
+    name: player.name,
+    position: player.position,
+    nationTeamId: player.nationTeamId,
+    nationNameHe: nation?.nameHe ?? `#${player.nationTeamId}`,
+    nationFlag: nation?.flagEmoji ?? null,
+    isStarter: !player.isReserve,
+    fixture: fixture ? {
+      id: fixture.id,
+      homeTeam: fixture.homeTeam,
+      awayTeam: fixture.awayTeam,
+      opponent: nation ? opponentForNation(fixture, nation) : null,
+      date: fixture.date,
+      timeIsrael: il?.timeHe ?? "?",
+      dateIsrael: il?.dateHe ?? "?",
+      name: fixture.name
+    } : null,
+    played,
+    roundPoints: played ? player.lastRoundPoints ?? null : null
+  };
+}
+function summarizePlayers(players) {
+  const total = players.length;
+  const played = players.filter((p) => p.played).length;
+  return { played, upcoming: total - played, total };
+}
+async function getTeamRoundUtilization(opts) {
+  requireCookie("Team round utilization");
+  const stage = opts.stage || "group";
+  const { byId: registry2 } = await loadMarketAndNations();
+  const allFixtures = await getAllFixtures();
+  let userId = opts.userId;
+  let teamName = opts.teamName;
+  if (!userId && teamName && opts.leagueId != null) {
+    const { teams } = await fetchLeagueTeams(opts.leagueId);
+    const q = teamName.toLowerCase();
+    const t = teams.find(
+      (x) => (x.name || "").toLowerCase().includes(q) || (x.userName || "").toLowerCase().includes(q)
+    );
+    if (!t) throw new Sport5Error(`No team matching "${teamName}" in league.`);
+    userId = t.userId;
+    teamName = t.name;
+  }
+  let data;
+  if (userId) {
+    data = await s5get("/UserTeam/GetUserAndTeam", { userId });
+  } else {
+    data = await s5get("/Account/GetConnectedUserAndTeam");
+  }
+  const team = summarizeTeam(data);
+  userId = team.userId;
+  teamName = team.teamName;
+  let roundId = opts.roundId ?? team.roundId;
+  if (roundId == null) {
+    const { roundId: lr } = await fetchLeagueTeams(opts.leagueId ?? team.leagueId ?? null);
+    roundId = lr ?? 1;
+  }
+  const roundFixtures = fixturesForFantasyRound(roundId, stage, allFixtures);
+  const allPlayers = [...team.starters, ...team.bench];
+  const players = allPlayers.map((p) => buildPlayerRoundStatus(p, roundFixtures, registry2));
+  return {
+    roundId,
+    stage,
+    teamName: team.teamName,
+    userId: team.userId,
+    players,
+    summary: summarizePlayers(players)
+  };
+}
+async function getLeagueRoundUtilization(opts) {
+  requireCookie("League round utilization");
+  const stage = opts.stage || "group";
+  const resolved = await resolveLeague(opts);
+  const { teams: tableTeams, roundId: leagueRoundId, leagueName } = await fetchLeagueTeams(resolved.leagueId);
+  const roundId = opts.roundId ?? leagueRoundId ?? 1;
+  const { byId: registry2 } = await loadMarketAndNations();
+  const allFixtures = await getAllFixtures();
+  const roundFixtures = fixturesForFantasyRound(roundId, stage, allFixtures);
+  const squads = await pool(tableTeams, 5, async (t) => {
+    try {
+      const data = await s5get("/UserTeam/GetUserAndTeam", { userId: t.userId });
+      const team = summarizeTeam(data);
+      const allPlayers = [...team.starters, ...team.bench];
+      const players = allPlayers.map((p) => buildPlayerRoundStatus(p, roundFixtures, registry2));
+      const summary = summarizePlayers(players);
+      return {
+        userId: t.userId,
+        teamName: t.name,
+        userName: t.userName,
+        ...summary,
+        empty: allPlayers.length === 0
+      };
+    } catch (e) {
+      return {
+        userId: t.userId,
+        teamName: t.name,
+        userName: t.userName,
+        played: 0,
+        upcoming: 0,
+        total: 0,
+        empty: true,
+        error: String(e?.message || e)
+      };
+    }
+  });
+  squads.sort((a, b) => b.played - a.played || a.teamName.localeCompare(b.teamName));
+  return {
+    leagueName: leagueName ?? resolved.leagueName,
+    leagueId: resolved.leagueId,
+    roundId,
+    stage,
+    teams: squads
+  };
+}
+async function getLeagueWatchlist(opts) {
+  requireCookie("League watchlist");
+  const stage = opts.stage || "group";
+  const includePlayed = opts.includePlayed ?? false;
+  const resolved = await resolveLeague(opts);
+  const { teams: tableTeams, roundId: leagueRoundId, leagueName } = await fetchLeagueTeams(resolved.leagueId);
+  const roundId = opts.roundId ?? leagueRoundId ?? 1;
+  const { byId: registry2 } = await loadMarketAndNations();
+  const allFixtures = await getAllFixtures();
+  let roundFixtures = fixturesForFantasyRound(roundId, stage, allFixtures);
+  if (!includePlayed) {
+    roundFixtures = roundFixtures.filter((f) => !isFixturePlayed(f));
+  }
+  const squads = await pool(tableTeams, 5, async (t) => {
+    try {
+      const data = await s5get("/UserTeam/GetUserAndTeam", { userId: t.userId });
+      const team = summarizeTeam(data);
+      const allPlayers = [...team.starters, ...team.bench];
+      return { teamName: t.name, players: allPlayers };
+    } catch {
+      return { teamName: t.name, players: [] };
+    }
+  });
+  const fixtureMap = /* @__PURE__ */ new Map();
+  for (const squad of squads) {
+    for (const p of squad.players) {
+      const fixture = matchNationToFixture(p.nationTeamId, roundFixtures, registry2);
+      if (!fixture) continue;
+      const nation = registry2[p.nationTeamId];
+      if (!nation) continue;
+      let entry = fixtureMap.get(fixture.id);
+      if (!entry) {
+        entry = { fixture, sides: /* @__PURE__ */ new Map(), appearanceCount: 0 };
+        fixtureMap.set(fixture.id, entry);
+      }
+      entry.appearanceCount++;
+      let side = entry.sides.get(p.nationTeamId);
+      if (!side) {
+        side = {
+          nationTeamId: p.nationTeamId,
+          nationNameHe: nation.nameHe,
+          nationFlag: nation.flagEmoji,
+          teams: []
+        };
+        entry.sides.set(p.nationTeamId, side);
+      }
+      let ft = side.teams.find((x) => x.fantasyTeamName === squad.teamName);
+      if (!ft) {
+        ft = { fantasyTeamName: squad.teamName, players: [] };
+        side.teams.push(ft);
+      }
+      if (!ft.players.includes(p.name)) ft.players.push(p.name);
+    }
+  }
+  const fixtures = [...fixtureMap.values()].map(({ fixture, sides, appearanceCount }) => {
+    const il = formatIsraelTime(fixture.date, fixture.time);
+    const sidesObj = {};
+    for (const [k, v] of sides) sidesObj[String(k)] = v;
+    return {
+      fixture: { ...fixture, dateIsrael: il.dateHe, timeIsrael: il.timeHe },
+      appearanceCount,
+      sides: sidesObj
+    };
+  }).sort((a, b) => {
+    const da = `${a.fixture.date || ""} ${a.fixture.time || ""}`;
+    const db = `${b.fixture.date || ""} ${b.fixture.time || ""}`;
+    return da.localeCompare(db);
+  });
+  const topGames = fixtures.map((f) => ({
+    fixtureId: f.fixture.id,
+    label: `${f.fixture.homeTeam ?? "?"} vs ${f.fixture.awayTeam ?? "?"}`,
+    appearanceCount: f.appearanceCount
+  })).sort((a, b) => b.appearanceCount - a.appearanceCount).slice(0, 10);
+  return {
+    leagueName: leagueName ?? resolved.leagueName,
+    leagueId: resolved.leagueId,
+    roundId,
+    stage,
+    fixtures,
+    topGames
+  };
 }
 
 // src/index.ts
@@ -21877,6 +22353,7 @@ server.registerTool(
       }));
       const structured = {
         leagueName: data.leagueName,
+        roundId: data.roundId ?? null,
         pageIndex: args.pageIndex ?? 0,
         returned: teams.length,
         teams
@@ -22020,6 +22497,86 @@ server.registerTool(
     const s = rules.stage;
     const summary = `${s.label}: budget ${s.budgetM}M, max ${s.maxPerNationalTeam} players per national team, ${s.transfersPerRound} transfers/round. Squad 15 (11 XI + 4 bench). Goals: GK ${rules.scoring.goalByPosition.GK}/DEF ${rules.scoring.goalByPosition.DEF}/MID ${rules.scoring.goalByPosition.MID}/FWD ${rules.scoring.goalByPosition.FWD}; assist ${rules.scoring.assist}; clean sheet (GK/DEF) 4; captain x2.`;
     return result(rules, summary);
+  }
+);
+server.registerTool(
+  "team_round_utilization",
+  {
+    title: "Team round utilization",
+    description: "For one fantasy team, list all 15 players with their national-team fixture in the current round, whether that match already played, and round points if available. Requires SPORT5_COOKIE.",
+    inputSchema: {
+      userId: external_exports.number().int().optional().describe("User id (default: your connected team)."),
+      leagueId: external_exports.number().int().nullable().optional().describe("League id for teamName lookup."),
+      teamName: external_exports.string().optional().describe("Fantasy team name substring to find userId in league."),
+      roundId: external_exports.number().int().optional().describe("Sport5 fantasy round (default from team/league)."),
+      stage: external_exports.enum(["group", "r32", "r16", "qf", "sf", "final"]).optional().describe("Tournament stage (default group).")
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true }
+  },
+  async (args) => {
+    try {
+      const data = await getTeamRoundUtilization(args);
+      const summary = `${data.teamName} \u2014 round ${data.roundId} (${data.stage}): ${data.summary.played} played, ${data.summary.upcoming} upcoming / ${data.summary.total}.
+` + data.players.slice(0, 15).map(
+        (p) => `\u2022 ${p.name} (${p.nationNameHe}) \u2014 ${p.played ? `played ${p.roundPoints ?? 0}pts` : `upcoming ${p.fixture?.dateIsrael ?? ""} ${p.fixture?.timeIsrael ?? ""}`}`
+      ).join("\n");
+      return result(data, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+server.registerTool(
+  "league_round_utilization",
+  {
+    title: "League round utilization",
+    description: "For a league, show how many players per fantasy team have already played vs still waiting on their national-team match this round (all 15 squad players). Pass leagueName or leagueId. Max 50 teams. Requires SPORT5_COOKIE.",
+    inputSchema: {
+      leagueId: external_exports.number().int().nullable().optional().describe("Private league id."),
+      leagueName: external_exports.string().optional().describe("League name substring (from your leagues)."),
+      roundId: external_exports.number().int().optional().describe("Sport5 fantasy round (default from league)."),
+      stage: external_exports.enum(["group", "r32", "r16", "qf", "sf", "final"]).optional().describe("Tournament stage (default group).")
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true }
+  },
+  async (args) => {
+    try {
+      const data = await getLeagueRoundUtilization(args);
+      const summary = `${data.leagueName ?? "League"} \u2014 round ${data.roundId}: ${data.teams.length} teams.
+` + data.teams.map(
+        (t) => `\u2022 ${t.teamName}: ${t.empty ? "no players" : `${t.played} played / ${t.upcoming} upcoming (${t.total})`}`
+      ).join("\n");
+      return result(data, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+server.registerTool(
+  "league_watchlist",
+  {
+    title: "League watchlist",
+    description: "For a league, list upcoming round fixtures where at least one league player is involved \u2014 grouped by match with fantasy-team \u2192 player mapping. Requires SPORT5_COOKIE.",
+    inputSchema: {
+      leagueId: external_exports.number().int().nullable().optional().describe("Private league id."),
+      leagueName: external_exports.string().optional().describe("League name substring (from your leagues)."),
+      roundId: external_exports.number().int().optional().describe("Sport5 fantasy round (default from league)."),
+      stage: external_exports.enum(["group", "r32", "r16", "qf", "sf", "final"]).optional().describe("Tournament stage (default group)."),
+      includePlayed: external_exports.boolean().optional().describe("Include already-played fixtures (default false).")
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true }
+  },
+  async (args) => {
+    try {
+      const data = await getLeagueWatchlist(args);
+      const summary = `${data.leagueName ?? "League"} watchlist \u2014 round ${data.roundId}, ${data.fixtures.length} fixtures.
+` + data.fixtures.slice(0, 10).map(
+        (f) => `${f.fixture.dateIsrael} ${f.fixture.timeIsrael} \u2014 ${f.fixture.homeTeam} vs ${f.fixture.awayTeam} (${f.appearanceCount} league picks)`
+      ).join("\n");
+      return result(data, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
   }
 );
 async function main() {

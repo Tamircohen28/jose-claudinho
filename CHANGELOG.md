@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-15
+
+### Added
+- **Round utilization:** three MCP tools — `team_round_utilization`,
+  `league_round_utilization`, `league_watchlist` — join squads, national teams, and
+  WC fixtures to report played vs upcoming matches and games of interest.
+- Slash commands: `/team-round-utilization`, `/league-round-utilization`,
+  `/league-watchlist` with matching internal skills (Hebrew output format).
+- `mcp-server/src/nations.ts` — Sport5 nation registry + Hebrew→TheSportsDB aliases.
+- `mcp-server/src/roundUtilization.ts` — league-wide squad fetch and watchlist aggregation.
+- `sport5_get_league_table` now exposes `roundId` in structured output.
+
 ### Changed
 - **Zero-config defaults for everything except the cookie.** Fixtures, snapshot
   storage, season and league ids now rely entirely on baked-in server defaults; the
