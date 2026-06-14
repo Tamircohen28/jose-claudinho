@@ -196,6 +196,21 @@ export function getStage(key: string | undefined): StageRule {
   return STAGES[k] || STAGES.group;
 }
 
+/**
+ * Fantasy round → fixture mapping notes (see fixtures.ts fixturesForFantasyRound).
+ * Sport5 roundId during group stage is typically 1, 2, 3 (one per matchday).
+ * Tune intRound / date clustering in fixtures.ts if Sport5 numbering diverges.
+ */
+export const FANTASY_ROUND_FIXTURES = {
+  groupStageMatchdays: 3,
+  groupStageRoundIds: [1, 2, 3] as const,
+  note:
+    "Group stage Sport5 roundId 1/2/3 maps to WC matchdays via TheSportsDB intRound or date buckets.",
+};
+
+/** Max fantasy teams to analyze in league-wide round utilization (private leagues). */
+export const LEAGUE_UTILIZATION_MAX_TEAMS = 50;
+
 /** Full rules bundle for the get_game_rules tool, scoped to one stage. */
 export function rulesForStage(stageKey: string | undefined) {
   const stage = getStage(stageKey);
