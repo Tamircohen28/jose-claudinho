@@ -12,10 +12,13 @@ stores and analyzes data, then hands a plan to the user.
 ```
 ┌─────────────────────────── Claude Code ───────────────────────────┐
 │                                                                    │
-│  commands/                     skills/weekly-squad-advisor/        │
-│  ├─ /squad-advice    ─────────▶  10-step procedure +              │
-│  ├─ /snapshot-league            constraint-validation checklist    │
-│  └─ /fantasy-setup                        │                        │
+│  commands/                     skills/                             │
+│  ├─ /squad-advice    ─────────▶ weekly-squad-advisor               │
+│  ├─ /snapshot-league                                           │
+│  ├─ /fantasy-setup                                             │
+│  ├─ /team-round-utilization ──▶ team-round-utilization           │
+│  ├─ /league-round-utilization ▶ league-round-utilization         │
+│  └─ /league-watchlist        ─▶ league-watchlist                 │
 │                                           │ calls MCP tools        │
 │                                           ▼                        │
 │                          .mcp.json → fantasy-wc server (stdio)     │
@@ -24,14 +27,16 @@ stores and analyzes data, then hands a plan to the user.
         ┌────────────────────────────────────┼────────────────────────────┐
         │            mcp-server (dist/index.js, esbuild bundle)            │
         │                                    │                             │
-        │  index.ts  ── registers 10 tools (Zod in, structuredContent out) │
+        │  index.ts  ── registers 13 tools (Zod in, structuredContent out) │
         │     │                                                            │
-        │     ├─ rules.ts        get_game_rules                            │
-        │     ├─ sport5Client.ts s5get(), requireCookie(), pool()         │
-        │     ├─ transform.ts    slimPlayer/flattenMarket/summarizeTeam    │
-        │     ├─ analysis.ts     buildSnapshot(), analyzeOwnership()       │
-        │     ├─ storage.ts      writeSnapshot/listSnapshots/readSnapshot  │
-        │     └─ fixtures.ts     getFixtures()                             │
+        │     ├─ rules.ts           get_game_rules                         │
+        │     ├─ sport5Client.ts    s5get(), requireCookie(), pool()      │
+        │     ├─ transform.ts       slimPlayer/flattenMarket/summarizeTeam │
+        │     ├─ analysis.ts      buildSnapshot(), analyzeOwnership()    │
+        │     ├─ storage.ts       writeSnapshot/listSnapshots/readSnapshot│
+        │     ├─ fixtures.ts      getFixtures(), round mapping           │
+        │     ├─ nations.ts       Hebrew nation → TheSportsDB aliases    │
+        │     └─ roundUtilization.ts  league/team round status + watchlist│
         └─────────┬───────────────────┬────────────────────┬─────────────┘
                   │                   │                    │
                   ▼                   ▼                    ▼
@@ -54,6 +59,18 @@ stores and analyzes data, then hands a plan to the user.
 5. `sport5_list_players` → value and alternatives from the flattened market.
 6. The skill drafts a plan and runs it through the constraint checklist before
    presenting it.
+
+## Data flow — `/league-round-utilization` / `/league-watchlist`
+
+1. `resolveLeague()` matches `leagueName` against `sport5_get_my_leagues` or uses
+   `leagueId` directly.
+2. `fetchLeagueTeams()` paginates `GetLeagueData` (max 50 teams) and reads `roundId`.
+3. `getAllFixtures()` + `fixturesForFantasyRound()` select WC matches for the current
+   Sport5 round; `buildNationRegistry()` maps `nationTeamId` → TheSportsDB team names.
+4. `pool()` fetches each fantasy squad via `GetUserAndTeam`.
+5. **Utilization:** per team, count players whose nation fixture is `isFixturePlayed`.
+   **Watchlist:** group upcoming fixtures by sides, listing fantasy team → player
+   mappings and ranking games by league-player appearances.
 
 ## Key design choices
 

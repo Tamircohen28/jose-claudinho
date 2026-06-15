@@ -13,12 +13,13 @@ For people changing the code.
 
 ## The 30-second model
 
-- A **TypeScript MCP server** (`mcp-server/`) exposes 10 read-only tools over the
+- A **TypeScript MCP server** (`mcp-server/`) exposes 13 read-only tools over the
   Sport5 API, TheSportsDB fixtures, and local JSON snapshots.
 - It's bundled by **esbuild** into a single committed file (`dist/index.js`) so the
   plugin runs with no `node_modules` at runtime.
 - The plugin layer (`.claude-plugin/`, `.mcp.json`, `skills/`, `commands/`) wires that
-  server into Claude Code and adds the `weekly-squad-advisor` reasoning skill.
+  server into Claude Code and adds reasoning skills (`weekly-squad-advisor`,
+  `team-round-utilization`, `league-round-utilization`, `league-watchlist`).
 - **`npm run typecheck` is the correctness gate** — there is no unit-test suite yet.
 
 ## Source layout
@@ -31,4 +32,6 @@ For people changing the code.
 | `src/transform.ts` | Raw API payloads → slim agent-friendly DTOs |
 | `src/analysis.ts` | `buildSnapshot()`, `analyzeOwnership()` |
 | `src/storage.ts` | Snapshot read/write |
-| `src/fixtures.ts` | TheSportsDB fixtures |
+| `src/fixtures.ts` | TheSportsDB fixtures, round mapping, Israel time formatting |
+| `src/nations.ts` | Sport5 nation registry + Hebrew→TheSportsDB aliases |
+| `src/roundUtilization.ts` | Team/league round status and watchlist aggregation |

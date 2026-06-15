@@ -27,6 +27,20 @@ to refresh the cookie.
 | `worldcup_fixtures` | `sport5_get_user_team` |
 | `list_snapshots` | `sport5_get_league_table` |
 | `analyze_ownership` | `snapshot_top_teams` |
+| | `team_round_utilization` |
+| | `league_round_utilization` |
+| | `league_watchlist` |
+
+## League round utilization fails on a large league
+
+**Symptom:** `league_round_utilization` or `league_watchlist` errors about more than
+50 teams.
+
+**Cause:** league-wide tools fetch every squad in the league (one API call per team).
+They are capped at 50 teams to stay polite to Sport5.
+
+**Fix:** pass a **private league** name or `leagueId` (e.g. `/league-watchlist כצים`),
+not the overall Sport5 league.
 
 ## The plugin doesn't appear / MCP server won't start
 

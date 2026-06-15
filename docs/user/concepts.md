@@ -39,6 +39,23 @@ The "learning" is that ownership analysis is built from the accumulating snapsho
 history — the more rounds you snapshot, the better its read on what the best managers
 are doing.
 
+## Round utilization (private leagues)
+
+Three commands report how squad players map to real World Cup fixtures in the
+current fantasy round:
+
+| Command | What it shows |
+|---------|---------------|
+| `/team-round-utilization` | All 15 players on one team — national-team fixture, played vs upcoming, round points |
+| `/league-round-utilization <league>` | Per fantasy team in a league: how many players already played vs still waiting |
+| `/league-watchlist <league>` | Upcoming fixtures where at least one league player is involved |
+
+Pass a league name substring (e.g. `כצים`) or `leagueId`. League-wide tools fetch
+every squad in the league (capped at 50 teams — intended for private leagues, not the
+overall Sport5 league). Nation names are matched from Sport5 Hebrew to TheSportsDB
+English via a built-in alias table; per-player points during an in-progress round
+depend on Sport5 updating `lastRoundPoints` after each nation match.
+
 ## Key game concepts it encodes
 
 - **Squad**: 15 players — a starting XI (1 GK, 3–5 DEF, 3–5 MID, 1–3 FWD) plus a

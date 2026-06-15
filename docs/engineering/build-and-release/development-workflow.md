@@ -45,8 +45,8 @@ workflow.
 2. If it returns Sport5 data, add a transform in `transform.ts` that emits a slim DTO
    — don't pass raw payloads through.
 3. If it hits a cookie-gated endpoint, call `requireCookie()` at the top.
-4. Update the README tool list, `docs/engineering/architecture/overview.md`, and the
-   `CHANGELOG.md`.
+4. Update the README tool list, `docs/engineering/architecture/overview.md`,
+   `CLAUDE.md`, and the `CHANGELOG.md`.
 
 ## Changing game rules
 

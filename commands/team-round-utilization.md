@@ -3,7 +3,10 @@ name: team-round-utilization
 description: Show per-player round status for one fantasy team — national-team fixture, played/upcoming, round points.
 allowed-tools: [
   "mcp__plugin_jose-claudinho_fantasy-wc__team_round_utilization",
-  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_my_leagues"
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_my_leagues",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_league_table",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_my_team",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_user_team"
 ]
 ---
 
