@@ -1,7 +1,11 @@
 ---
 name: weekly-squad-advisor
-description: Internal skill powering the /squad-advice command. Produces the weekly Fantasy World Cup 2026 recommendation — transfers, captain, lineup, chips — enforcing all game rules. Invoked by the squad-advice command; not meant to be called directly by users.
-version: 1.0.0
+description: >
+  Internal skill for /squad-advice. Produces the weekly Sport5 Fantasy WC 2026 plan —
+  transfers, captain, lineup, chips — under official rules. Parses optional stage
+  (group/r32/r16/qf/sf/final) and strategy (climb overall vs defend private league).
+  Read-and-recommend only; invoked by command, not users.
+version: 1.1.0
 user-invocable: false
 ---
 
@@ -13,7 +17,7 @@ user can actually make under the rules. Every recommendation must be legal and
 concrete (named players + the exact action), never vague.
 
 The `fantasy-wc` MCP server provides all data. Tool names are prefixed
-`mcp__plugin_jose-claudinho_fantasy-wc__<tool>`. The tools:
+`mcp__plugin_jose-claudinho_fantasy-wc__<tool>`. Core tools for this skill:
 `sport5_list_players`, `sport5_get_my_team`, `sport5_get_user_team`,
 `sport5_get_my_leagues`, `sport5_get_league_table`, `worldcup_fixtures`,
 `snapshot_top_teams`, `analyze_ownership`, `list_snapshots`, `get_game_rules`.
@@ -21,15 +25,26 @@ The `fantasy-wc` MCP server provides all data. Tool names are prefixed
 This skill is read-and-recommend only. The MCP cannot make changes — present the
 moves and the user applies them in the app at https://fantasywc.sport5.co.il.
 
+## Errors
+
+Follow the same boundaries as `../shared/references/error-handling.md`:
+
+- **Missing cookie:** Tell user to run `/fantasy-setup` or set `SPORT5_COOKIE`. Never guess squad data.
+- **Sport5 API failure:** Quote the tool error; do not invent players or points.
+- **Stage unclear:** Infer from `worldcup_fixtures` (past eliminations + round timing); confirm with user before transfers.
+- **Snapshot failure:** Continue with market + fixtures; note reduced ownership confidence.
+- **Transfer window closed:** Skip transfer/captain change recommendations (steps 6–7); state prominently at top.
+
 ## The weekly procedure
 
 Follow these steps in order. Do not skip the constraint check at the end.
 
-1. **Establish the stage and transfer window status.** Ask the user (or infer
-   from fixtures) which stage the upcoming round is in: group / r32 / r16 / qf /
-   sf / final. Call `get_game_rules` with that stage. This fixes the **budget**,
-   the **max players per national team**, and the **transfers allowed this
-   round**. These change per stage — never assume group-stage values.
+1. **Establish the stage and transfer window status.** Parse `$ARGUMENTS` for stage
+   (group / r32 / r16 / qf / sf / final) and goal ("climb overall" vs "defend private
+   league"). If stage omitted, infer from `worldcup_fixtures` (when="past" eliminations
+   + when="next" round timing) and confirm with the user. Call `get_game_rules` with that
+   stage. This fixes the **budget**, the **max players per national team**, and the
+   **transfers allowed this round**. These change per stage — never assume group-stage values.
 
    **Then immediately determine whether the transfer window is open or closed.**
    Call `worldcup_fixtures` (when="past") and check whether any match in the
@@ -47,10 +62,11 @@ Follow these steps in order. Do not skip the constraint check at the end.
      steps. Note the exact deadline: 30 minutes before the first scheduled
      match of this round.
 
-2. **Load the current team.** Call `sport5_get_my_team`. Note the starting XI,
-   bench, captain/vice, formation, `usedBudgetM`, `playersPerNationalTeam`, and
-   which `bonusesUsed` chips are already spent. Compute remaining budget =
-   stage budget − usedBudgetM (note: a transfer frees the sold player's price).
+2. **Load the current team.** Call `sport5_get_my_team` unless `$ARGUMENTS` names another
+   manager — then use `sport5_get_user_team`. Note the starting XI, bench, captain/vice,
+   formation, `usedBudgetM`, `playersPerNationalTeam`, and which `bonusesUsed` chips are
+   already spent. Compute remaining budget = stage budget − usedBudgetM (note: a transfer
+   frees the sold player's price).
 
 3. **Check availability.** Flag any owned player who is `injured`, `expelled`, or
    `missing`, or whose national team has been **eliminated** (cross-check

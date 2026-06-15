@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **`/league-round-report`** — combined Hebrew league report (utilization + watchlist).
+- Shared skill references under `skills/shared/references/` (Hebrew labels, league args,
+  error handling, report example).
+
+### Changed
+- Expanded all round-utilization skills to v1.1.0 with full procedures, insights blocks,
+  and aligned output contracts.
+- `weekly-squad-advisor` v1.1.0 — error-handling section and `$ARGUMENTS` parsing.
+
 ## [1.1.0] - 2026-06-15
 
 ### Added

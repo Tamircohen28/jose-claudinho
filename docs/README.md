@@ -21,5 +21,6 @@ The doc map. Start with the row that matches who you are.
 ## One-line summary
 
 A Claude Code plugin that reads Sport5 Fantasy World Cup 2026 data, learns from
-weekly snapshots of the top teams, and recommends transfers, captain and lineup
-under the official rules — **read-and-recommend only**, it never changes your team.
+weekly snapshots of the top teams, recommends transfers, captain and lineup under
+the official rules, and reports round utilization for private leagues —
+**read-and-recommend only**, it never changes your team.

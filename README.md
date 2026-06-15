@@ -34,22 +34,34 @@ you a concrete plan; you apply it in the app.
   into most-owned players, popular captains, best value, and differentials.
 - **Recommends.** The `weekly-squad-advisor` skill runs a 10-step procedure and
   validates every plan against a hard constraint checklist before presenting it.
+- **Tracks round progress.** Round-utilization tools join your squad (or a whole
+  private league) to World Cup fixtures — who has already played this round vs who is
+  still waiting, and which upcoming matches matter for your league.
 
 ## Components
 
 | Type | Name | Purpose |
 |------|------|---------|
-| MCP server | `fantasy-wc` | 10 tools over the Sport5 API + TheSportsDB fixtures + local snapshots |
-| Skill | `weekly-squad-advisor` | The brain: turns data + rules into a legal weekly plan |
+| MCP server | `fantasy-wc` | 13 tools over the Sport5 API + TheSportsDB fixtures + local snapshots |
+| Skill | `weekly-squad-advisor` | Turns data + rules into a legal weekly plan |
+| Skill | `team-round-utilization` | Per-player fixture status for one fantasy team |
+| Skill | `league-round-utilization` | League-wide played vs upcoming counts |
+| Skill | `league-watchlist` | Upcoming fixtures with league-owned players |
+| Skill | `league-round-report` | Full league report (utilization + watchlist) |
 | Command | `/squad-advice` | Produce this round's transfer/captain/lineup plan |
 | Command | `/snapshot-league` | Capture top teams + market for learning |
-| Command | `/fantasy-setup` | Configure your session cookie & verify the connection |
+| Command | `/fantasy-setup` | Configure your session cookie and verify the connection |
+| Command | `/team-round-utilization` | One team's players: fixture, played/upcoming, points |
+| Command | `/league-round-utilization` | League table: how many players played this round |
+| Command | `/league-watchlist` | Games of interest for a private league |
+| Command | `/league-round-report` | Full league round report (recommended default) |
 
 ### MCP tools
 
 `sport5_list_players` · `sport5_get_my_team` · `sport5_get_user_team` ·
 `sport5_get_my_leagues` · `sport5_get_league_table` · `worldcup_fixtures` ·
-`snapshot_top_teams` · `analyze_ownership` · `list_snapshots` · `get_game_rules`
+`snapshot_top_teams` · `analyze_ownership` · `list_snapshots` · `get_game_rules` ·
+`team_round_utilization` · `league_round_utilization` · `league_watchlist`
 
 ## Prerequisites
 
@@ -135,6 +147,9 @@ to the login page without a valid session.
 | `worldcup_fixtures` (TheSportsDB) | `sport5_get_user_team` (any user) |
 | `list_snapshots` (local) | `sport5_get_league_table` |
 | `analyze_ownership` (local) | `snapshot_top_teams` |
+| | `team_round_utilization` |
+| | `league_round_utilization` |
+| | `league_watchlist` |
 
 So the player market, the rules and the fixtures are public, but **anything about
 teams, leagues or standings — including the weekly snapshot/learning feature —
@@ -144,14 +159,28 @@ return a clear "set SPORT5_COOKIE" message if it's missing or expired.
 ## Usage
 
 ```text
-/fantasy-setup          # first time: configure & verify
-/snapshot-league        # capture this round's top teams (do this weekly)
-/squad-advice qf        # get a plan for the quarter-final round
+/fantasy-setup                    # first time: configure and verify
+/snapshot-league                  # capture this round's top teams (weekly)
+/squad-advice qf                  # plan for the quarter-final round
+/team-round-utilization           # your squad: who played vs still waiting
+/league-round-report כצים         # full league report (recommended)
+/league-round-utilization כצים    # private league: played/upcoming per team only
+/league-watchlist כצים            # upcoming matches of interest only
 ```
 
-Or just ask in natural language — *"who should I captain this week?"*,
+Or ask in natural language — *"who should I captain this week?"*,
 *"which two transfers should I make for the round of 16?"* — and the
 `weekly-squad-advisor` skill activates automatically.
+
+## Update
+
+After `git pull`:
+
+```bash
+make plugin
+```
+
+Then restart Claude Code (or run `/plugin`) to load the latest build.
 
 ## How it works
 
@@ -177,8 +206,9 @@ npm run build        # esbuild → dist/index.js
 ```
 
 The MCP source is in `mcp-server/src/` (`rules.ts`, `transform.ts`,
-`sport5Client.ts`, `fixtures.ts`, `storage.ts`, `analysis.ts`, `index.ts`). The
-game rules live entirely in `rules.ts` — update there if Sport5 changes them.
+`sport5Client.ts`, `fixtures.ts`, `nations.ts`, `roundUtilization.ts`,
+`storage.ts`, `analysis.ts`, `index.ts`). The game rules live entirely in
+`rules.ts` — update there if Sport5 changes them.
 
 ## Documentation
 

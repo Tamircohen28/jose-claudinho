@@ -22,7 +22,15 @@ The bundle is a single self-contained file, so once built it runs without
 
 ## 3. Install the plugin
 
-From an interactive `claude` session:
+From the repo root (recommended):
+
+```bash
+make plugin
+```
+
+Then restart Claude Code (or run `/plugin`).
+
+Or manually from an interactive `claude` session:
 
 ```text
 /plugin marketplace add /Users/tamircohen/Projects/jose-claudinho
@@ -30,6 +38,8 @@ From an interactive `claude` session:
 ```
 
 (Adjust the path to wherever you cloned the repo.)
+
+To **update** after pulling new changes: run `make plugin` again and restart Claude Code.
 
 ## 4. Give it your session cookie
 
@@ -52,8 +62,10 @@ failing.
 ## 5. Get advice
 
 ```text
-/snapshot-league        # capture this round's top teams (do this weekly)
-/squad-advice qf        # plan for the quarter-final round
+/snapshot-league                  # capture this round's top teams (do this weekly)
+/squad-advice qf                  # plan for the quarter-final round
+/league-round-utilization כצים    # private league: played vs upcoming this round
+/league-watchlist כצים            # upcoming matches that matter for the league
 ```
 
 Or ask in natural language — *"who should I captain this week?"* — and the
@@ -61,9 +73,13 @@ Or ask in natural language — *"who should I captain this week?"* — and the
 
 ## What you get back
 
-A concrete, rules-validated plan: the transfers to make, captain and vice, your
-starting XI and bench, any chip recommendation, and the watch-outs. You apply it
-yourself in the app — the plugin never changes your team.
+**Squad advice:** a concrete, rules-validated plan — transfers, captain and vice,
+starting XI and bench, chip recommendation, and watch-outs.
+
+**Round utilization:** per-team or league-wide counts of players whose national-team
+match already played vs still upcoming, plus a watchlist of fixtures where league
+managers have picks (Hebrew-formatted output). You apply squad changes yourself in
+the app — the plugin never changes your team.
 
 Next: [troubleshooting](troubleshooting.md) if anything misbehaves, or
 [concepts](concepts.md) for the mental model.

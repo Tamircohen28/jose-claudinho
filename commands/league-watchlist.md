@@ -13,3 +13,5 @@ Arguments: `$ARGUMENTS` should name the league (e.g. כצים) or give a leagueI
 the stage or round number. If no league is given, list the user's leagues and ask which one.
 
 Follow the skill procedure and output the Hebrew-formatted watchlist it specifies.
+
+For the **full** league report (utilization + watchlist), use `/league-round-report` instead.

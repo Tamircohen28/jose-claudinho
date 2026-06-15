@@ -8,5 +8,9 @@ For people using José Claudinho to manage their Sport5 Fantasy World Cup 2026 t
 | [quick-start.md](quick-start.md) | Zero → first recommendation in ~5 minutes |
 | [troubleshooting.md](troubleshooting.md) | Cookie expired, plugin won't load, empty results |
 
+Commands include `/squad-advice`, `/snapshot-league`, `/fantasy-setup`, and (v1.1+)
+`/team-round-utilization`, `/league-round-utilization`, `/league-watchlist` for
+private-league round tracking.
+
 New here? Read **[concepts](concepts.md)** for the mental model, then follow the
 **[quick start](quick-start.md)**.

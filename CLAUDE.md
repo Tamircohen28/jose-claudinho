@@ -17,7 +17,6 @@ reports round utilization (played vs upcoming) and league watchlists. It is
 | Path | Purpose |
 |------|---------|
 | `.claude-plugin/plugin.json` | Plugin manifest (name, version, author) |
-| `.claude-plugin/marketplace.json` | Local marketplace entry for `/plugin install` |
 | `.mcp.json` | MCP server registration (`fantasy-wc`, env passthrough) |
 | `mcp-server/src/index.ts` | Registers all 13 MCP tools (Zod schemas + handlers) |
 | `mcp-server/src/rules.ts` | **Authoritative** encoded game rules (budgets, caps, scoring, chips) |
@@ -33,7 +32,9 @@ reports round utilization (played vs upcoming) and league watchlists. It is
 | `skills/team-round-utilization/SKILL.md` | Per-team round player status |
 | `skills/league-round-utilization/SKILL.md` | League played vs upcoming table |
 | `skills/league-watchlist/SKILL.md` | League games-of-interest watchlist |
-| `commands/` | `/squad-advice`, `/snapshot-league`, `/fantasy-setup`, `/team-round-utilization`, `/league-round-utilization`, `/league-watchlist` |
+| `skills/league-round-report/SKILL.md` | Combined league utilization + watchlist report |
+| `skills/shared/references/` | Shared Hebrew labels, args, errors, report example |
+| `commands/` | `/squad-advice`, `/snapshot-league`, `/fantasy-setup`, `/team-round-utilization`, `/league-round-utilization`, `/league-watchlist`, `/league-round-report` |
 
 ## Build & test commands
 
