@@ -211,6 +211,133 @@ export const FANTASY_ROUND_FIXTURES = {
 /** Max fantasy teams to analyze in league-wide round utilization (private leagues). */
 export const LEAGUE_UTILIZATION_MAX_TEAMS = 50;
 
+// ─── Mathematical scoring helpers ─────────────────────────────────────────────
+
+/**
+ * Points awarded for a multi-goal haul (brace, hat-trick, …).
+ * Rule: n goals → (n − 1) bonus points on top of the base goal points.
+ */
+export function computeGoalMultiBonus(goalsScored: number): number {
+  return Math.max(0, goalsScored - 1);
+}
+
+/**
+ * Net goal-conceded penalty for a GK or DEF.
+ *
+ * Rule: the first goal conceded wipes the clean-sheet bonus (handled elsewhere);
+ * every goal from the second onward costs −1 point.
+ * Returns a negative number (or 0 if the player kept a clean sheet / conceded only 1).
+ */
+export function computeGoalsConcededPenalty(goalsConceded: number): number {
+  return goalsConceded >= 2 ? -(goalsConceded - 1) : 0;
+}
+
+/**
+ * Captain multiplier for a given chip state.
+ * Returns the multiplier to apply to the captain's raw score.
+ */
+export function captainMultiplier(isTripleCaptain: boolean): number {
+  return isTripleCaptain ? 3 : CAPTAINCY.captainMultiplier;
+}
+
+/**
+ * Card penalty in points.
+ *
+ * twoYellowsToRed and redCard are mutually exclusive.
+ * yellowCard can accompany a direct red (treated as −1 + −3 = −4 in the rules).
+ */
+export function computeCardPenalty(opts: {
+  yellowCards: number;
+  twoYellowsToRed: boolean;
+  redCard: boolean;
+}): number {
+  let pts = 0;
+  pts += opts.yellowCards * SCORING.yellowCard;
+  if (opts.twoYellowsToRed) pts += SCORING.twoYellowsToRed;
+  else if (opts.redCard) pts += SCORING.redCard;
+  return pts;
+}
+
+/**
+ * Points awarded for playing time (0 if the player did not feature at all).
+ * stoppage-time minutes do NOT count toward the 60-minute threshold;
+ * extra-time minutes DO count.
+ */
+export function computeMinutePoints(minutesPlayed: number): number {
+  if (minutesPlayed <= 0) return 0;
+  return minutesPlayed >= 60 ? SCORING.minutes.atLeast60 : SCORING.minutes.under60;
+}
+
+/**
+ * Full deterministic score for one player in one match.
+ * This mirrors what Sport5's scoring engine computes after a match completes.
+ *
+ * cleanSheet must already account for "played ≥ 60 min AND 0 goals conceded".
+ * goalsConcededWhileOn must be the goals conceded while the player was on the pitch.
+ */
+export interface MatchEvents {
+  minutesPlayed: number;
+  goals: number;
+  assists: number;
+  /** True only if GK/DEF, played 60+ min, and team kept a clean sheet. */
+  cleanSheet: boolean;
+  /** Goals player's team conceded while they were on the pitch. */
+  goalsConcededWhileOn: number;
+  yellowCards: number;
+  redCard: boolean;
+  twoYellowsToRed: boolean;
+  penaltyWon: number;
+  penaltyCaused: number;
+  /** GK only: number of penalties saved (deflected, not just blocked). */
+  penaltySaved: number;
+  penaltyMissed: number;
+  ownGoals: number;
+  isCaptain: boolean;
+  isTripleCaptain: boolean;
+}
+
+export function computeExactScore(events: MatchEvents, position: number): number {
+  const pos = position as 1 | 2 | 3 | 4;
+  let pts = 0;
+
+  pts += computeMinutePoints(events.minutesPlayed);
+
+  const goalPts =
+    pos === 1 ? SCORING.goalByPosition.GK
+    : pos === 2 ? SCORING.goalByPosition.DEF
+    : pos === 3 ? SCORING.goalByPosition.MID
+    : SCORING.goalByPosition.FWD;
+
+  pts += events.goals * goalPts;
+  pts += computeGoalMultiBonus(events.goals);
+  pts += events.assists * SCORING.assist;
+
+  if ((pos === 1 || pos === 2) && events.cleanSheet) {
+    pts += SCORING.cleanSheet.GK;
+  }
+  if (pos === 1 || pos === 2) {
+    pts += computeGoalsConcededPenalty(events.goalsConcededWhileOn);
+  }
+
+  pts += events.penaltyWon * SCORING.wonPenalty;
+  pts += events.penaltyCaused * SCORING.causedPenalty;
+  pts += events.penaltySaved * SCORING.goalkeeperSavedPenalty;
+  pts += events.penaltyMissed * SCORING.missedPenalty;
+  pts += events.ownGoals * SCORING.ownGoal;
+
+  pts += computeCardPenalty({
+    yellowCards: events.yellowCards,
+    twoYellowsToRed: events.twoYellowsToRed,
+    redCard: events.redCard,
+  });
+
+  if (events.isCaptain) {
+    pts *= captainMultiplier(events.isTripleCaptain);
+  }
+
+  return pts;
+}
+
 /** Full rules bundle for the get_game_rules tool, scoped to one stage. */
 export function rulesForStage(stageKey: string | undefined) {
   const stage = getStage(stageKey);
