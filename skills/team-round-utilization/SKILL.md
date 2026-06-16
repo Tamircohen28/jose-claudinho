@@ -4,7 +4,7 @@ description: >
   Maps one fantasy team's 15 players to national-team fixtures — played/upcoming, round
   points, XI/bench. Use for /team-round-utilization or when the user asks who played
   this round on their squad. Hebrew output, Israel UTC+3.
-version: 1.2.0
+version: 1.3.0
 user-invocable: false
 disable-model-invocation: true
 ---
@@ -12,7 +12,8 @@ disable-model-invocation: true
 # Team Round Utilization
 
 You are José Claudinho. Show how each of the **15 squad players** maps to their national
-team's match in the current fantasy round — with sorting, flags, and mid-round context.
+team's match in the current fantasy round — with sorting, flags, mid-round context, and
+actionable callouts.
 
 ## Tools
 
@@ -36,44 +37,113 @@ Read-and-recommend only. Never mutate the user's team.
 
 Follow in order. Do not skip error handling.
 
-1. **Parse arguments** per `league-args.md`: `userId`, `teamName`, `leagueName`/`leagueId`,
-   optional `roundId`, `stage` (default `group`).
+### 1. Parse arguments
 
-2. **Resolve league** when `teamName` or `leagueName` is given but not `leagueId`:
-   call `sport5_get_my_leagues`; disambiguate if needed.
+Per `league-args.md`: extract `userId`, `teamName`, `leagueName`/`leagueId`,
+optional `roundId`, `stage` (default `group`).
 
-3. **Fetch utilization** — call `team_round_utilization` with resolved params
-   (default: connected user's team).
+**Drill-down rule:** When this skill is invoked after a league table or league report,
+inherit `leagueId` and `roundId` from the prior response — do not ask the user again.
+Accept `teamName` from context or from `$ARGUMENTS`. Only ask if both are genuinely absent.
 
-4. **Optional captain markers** — if analyzing your team or a known `userId`, call
-   `sport5_get_my_team` or `sport5_get_user_team` and mark `(C)` / `(VC)` on matching rows.
+### 2. Resolve league
 
-5. **Map stage label** — use Hebrew from `hebrew-labels.md` for the header (not hardcoded
-   שלב הבתים unless `stage=group`).
+When `teamName` or `leagueName` is given but not `leagueId`: call `sport5_get_my_leagues`;
+disambiguate if needed. If `leagueId` is already in context, skip this step.
 
-6. **Sort rows** for readability:
-   - Starters before bench (`isStarter` true first).
-   - Within each group: unplayed before played (upcoming matches matter more mid-round).
-   - Then by kickoff time ascending (`fixture.date`, `fixture.timeIsrael`).
+### 3. Fetch utilization
 
-7. **Build the table** — one row per player. Use `nationFlag`, `nationNameHe`, `position`
-   (Hebrew labels from reference). Match cell: `{flag} {nationNameHe} נגד {opponent}` or
-   `{homeTeam} vs {awayTeam}` if opponent missing.
+Call `team_round_utilization` with resolved params (default: connected user's own team).
+On auth error, follow `error-handling.md` — missing cookie section.
 
-8. **Sanity check** — `summary.played + summary.upcoming === summary.total` (expect 15 or
-   fewer if squad incomplete). If mismatch, note it.
+### 4. Fetch captain markers (optional but preferred)
 
-9. **Mid-round callout** — if `summary.upcoming > 0`, add after the summary line:
-   - Count still waiting.
-   - **Next kickoff:** earliest upcoming fixture among unplayed players (date + time Israel).
+If analyzing the connected user's own team or a known `userId`, call
+`sport5_get_my_team` or `sport5_get_user_team`. Mark `(C)` / `(VC)` on matching player rows.
+This enables the captain callout in step 9.
 
-10. **Anomalies footnote** — if any player has `fixture: null` or `played` with null
-    `roundPoints`, explain per `error-handling.md` (alias mismatch / Sport5 lag).
+### 5. Map stage label
+
+Use Hebrew label from `hebrew-labels.md` for the header. Never hardcode שלב הבתים
+unless `stage=group`.
+
+### 6. Sort rows
+
+Order rows for scannability — what matters most should appear first:
+- Starters before bench (`isStarter: true` first).
+- Within each group: **upcoming before played** (unplayed matches have higher decision value mid-round).
+- Then by kickoff time ascending (`fixture.dateIsrael`, `fixture.timeIsrael`).
+
+### 7. Build the table
+
+One row per player. Fields:
+- **שחקן**: `{name}` + `(C)` or `(VC)` suffix if applicable.
+- **עמדה**: Hebrew label from `hebrew-labels.md` (שוער / בלם / קשר / חלוץ).
+- **נבחרת**: `{nationFlag} {nationNameHe}`.
+- **XI/ספסל**: פתיחה or ספסל.
+- **משחק**: `{homeFlag} {homeNameHe} נגד {awayFlag} {awayNameHe}`. If `fixture: null`, use `—`.
+- **סטטוס**: ✅ שיחק / ⏳ ממתין. If `fixture: null`, use `לא נמצא משחק`.
+- **נק׳ סיבוב**: `roundPoints` value, or `—` if null.
+
+### 8. Sanity check
+
+Verify `summary.played + summary.upcoming === summary.total` (expect 15 unless squad is
+incomplete). If the sum is off, append a note: `⚠️ מספר שחקנים לא תואם — ייתכן שגיאת נתונים`.
+
+### 9. Mid-round callouts
+
+Determine the round state, then render the appropriate callout block **after** the table.
+
+**Round complete** (`summary.upcoming === 0`):
+```
+✅ **סיבוב הסתיים** — כל {total} השחקנים שיחקו.
+{points tally line if any roundPoints are non-null — see below}
+```
+
+**Round in progress** (`summary.upcoming > 0` and `summary.played > 0`):
+```
+⏳ {upcoming} שחקנים עדיין לא שיחקו מתוך {total}.
+**הכי קרוב:** {dateIsrael} בשעה {timeIsrael} — {matchLabel} ({playerNames} ממתינים)
+{captain callout if applicable}
+{points tally line}
+```
+
+**Round not started** (`summary.played === 0`):
+```
+🔜 הסיבוב טרם החל — כל {total} השחקנים ממתינים.
+**פתיחת הסיבוב:** {earliest kickoff dateIsrael} בשעה {timeIsrael} — {matchLabel}
+{captain callout if applicable}
+```
+
+**Points tally line** — include whenever at least one player has `roundPoints` non-null:
+```
+💰 **נקודות עד כה:** {sum of non-null roundPoints} נק׳ ({count} שחקנים עם נתונים)
+```
+
+**Captain callout** — include when captain markers are known:
+- Captain has played: `✅ הקפטן {name} שיחק — נקודות מוכפלות נרשמו.`
+- Captain has not played yet: `⏳ הקפטן {name} עדיין לא שיחק ({matchLabel}, {timeIsrael}).`
+- Vice-captain has not played: `⏳ סגן הקפטן {name} ממתין ({matchLabel}, {timeIsrael}).`
+
+### 10. Anomalies footnote
+
+Add a `---` separator and footnotes **only** when anomalies exist. Use these exact templates:
+
+- `fixture: null` on a player:
+  `* {playerName} ({nationNameHe}): לא נמצא משחק בסיבוב זה — ייתכן שגיאת כינוי מול TheSportsDB.`
+- `played: true` but `roundPoints: null`:
+  `* {playerName}: שיחק אבל הנקודות עדיין לא עודכנו — Sport5 מעדכן לאחר כל משחק נבחרת.`
+- Multiple anomalies of the same type — group under one header:
+  `**הערות:**` then bullet list.
+
+If no anomalies: omit the footnotes section entirely.
 
 ## Output format
 
-```markdown
+\`\`\`markdown
 # {teamName} — ניצול סיבוב {roundId} ({stageLabelHe})
+
+כל השעות לפי שעון ישראל (UTC+3).
 
 | שחקן | עמדה | נבחרת | XI/ספסל | משחק | סטטוס | נק׳ סיבוב |
 |------|------|-------|---------|------|-------|----------|
@@ -81,12 +151,19 @@ Follow in order. Do not skip error handling.
 
 **סיכום:** {played} שיחקו · {upcoming} עדיין לא · {total} סה״כ
 
-{optional mid-round callout}
+{mid-round callout block — always present, pick the appropriate state from step 9}
 
-{optional footnotes}
-```
+---
 
-## Drill-down context
+{anomaly footnotes — only if anomalies exist}
+\`\`\`
 
-When the user asks about one team after a league table, accept `teamName` + league from
-prior chat context without re-asking the league name.
+## Drill-down from league context
+
+When the user says something like "תראה לי את קבוצת X" after a league report or league
+table, this skill should fire. At that point:
+- `leagueId` and `roundId` are already known from the prior response — reuse them.
+- Extract `teamName` from the user's message.
+- Do **not** ask the user for the league again.
+- If `teamName` is ambiguous (partial match), list matching team names from `sport5_get_league_table`
+  and ask the user to pick — do not guess.
