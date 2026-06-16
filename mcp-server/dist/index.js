@@ -31636,7 +31636,9 @@ function buildGroupStandings(results) {
   }
   const standings = [];
   for (const [group, teamsMap] of Array.from(groupMap.entries()).sort()) {
-    const teams = Array.from(teamsMap.values()).sort(standingComparator);
+    const initialSorted = Array.from(teamsMap.values()).sort(standingComparator);
+    const groupFixtures = groupResults.filter((r) => (r.group ?? "?").toUpperCase() === group);
+    const teams = applyHeadToHeadTiebreaking(initialSorted, groupFixtures);
     teams.forEach((t, i) => {
       t.groupRank = i + 1;
     });
@@ -31651,6 +31653,52 @@ function standingComparator(a, b) {
   if (b.gd !== a.gd) return b.gd - a.gd;
   if (b.gf !== a.gf) return b.gf - a.gf;
   return a.teamName.localeCompare(b.teamName);
+}
+function applyHeadToHeadTiebreaking(teams, groupResults) {
+  const result2 = [...teams];
+  let i = 0;
+  while (i < result2.length) {
+    let j = i + 1;
+    while (j < result2.length && result2[j].points === result2[i].points && result2[j].gd === result2[i].gd && result2[j].gf === result2[i].gf) {
+      j++;
+    }
+    if (j - i > 1) {
+      const tied = result2.slice(i, j);
+      const tiedNames = new Set(tied.map((t) => t.teamName));
+      const h2hResults = groupResults.filter(
+        (r) => tiedNames.has(r.homeTeam) && tiedNames.has(r.awayTeam)
+      );
+      const h2h = /* @__PURE__ */ new Map();
+      tied.forEach((t) => h2h.set(t.teamName, { pts: 0, gd: 0, gf: 0 }));
+      for (const r of h2hResults) {
+        const home = h2h.get(r.homeTeam);
+        const away = h2h.get(r.awayTeam);
+        home.gf += r.homeScore;
+        home.gd += r.homeScore - r.awayScore;
+        away.gf += r.awayScore;
+        away.gd += r.awayScore - r.homeScore;
+        if (r.homeScore > r.awayScore) {
+          home.pts += 3;
+        } else if (r.homeScore === r.awayScore) {
+          home.pts += 1;
+          away.pts += 1;
+        } else {
+          away.pts += 3;
+        }
+      }
+      tied.sort((a, b) => {
+        const ha = h2h.get(a.teamName);
+        const hb = h2h.get(b.teamName);
+        if (hb.pts !== ha.pts) return hb.pts - ha.pts;
+        if (hb.gd !== ha.gd) return hb.gd - ha.gd;
+        if (hb.gf !== ha.gf) return hb.gf - ha.gf;
+        return a.teamName.localeCompare(b.teamName);
+      });
+      for (let k = 0; k < tied.length; k++) result2[i + k] = tied[k];
+    }
+    i = j;
+  }
+  return result2;
 }
 function estimateAdvancementProbs(teams, isComplete) {
   if (isComplete) {
@@ -31675,6 +31723,7 @@ function estimateAdvancementProbs(teams, isComplete) {
   }
 }
 var R32_BRACKET = [
+  // Deterministic: each group winner faces the runner-up of an adjacent group
   ["1A", "2B"],
   ["1C", "2D"],
   ["1E", "2F"],
@@ -31687,12 +31736,15 @@ var R32_BRACKET = [
   ["1K", "2L"],
   ["1J", "2I"],
   ["1L", "2K"],
+  // Approximate 3rd-place slots (4 matches, 8 teams — assignment TBD by FIFA draw)
   ["3A_D", "3E_H"],
-  // best 3rd-place bracket slots (approximation)
-  ["3I_L", "3A_D"],
-  ["3E_H", "3I_L"],
-  ["3A_D", "3E_H"]
-  // repeated placeholder for 8 3rd-place slots
+  // best 3rd from groups A-D vs best 3rd from E-H
+  ["3I_L", "3A_L"],
+  // best 3rd from groups I-L vs 4th best 3rd (any group)
+  ["3E_L", "3A_E"],
+  // 3rd & 4th best remaining 3rd-place pairings
+  ["3best7", "3best8"]
+  // 7th & 8th best 3rd-place (lowest in bracket)
 ];
 function predictProbableMatchups(standings) {
   const slotTeam = /* @__PURE__ */ new Map();
@@ -31742,7 +31794,7 @@ function predictProbableMatchups(standings) {
   return { groups: standings, probableMatchups: matchups, teamExpectedRounds, teamStageProbabilities };
 }
 function resolveSlot(slot, slotMap) {
-  if (slot.startsWith("3") && slot.includes("_")) {
+  if (slot.startsWith("3") && (slot.includes("_") || slot.startsWith("3best"))) {
     return { team: "Best 3rd (TBD)", prob: 0.6 };
   }
   return slotMap.get(slot) ?? null;

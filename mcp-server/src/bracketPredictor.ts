@@ -128,7 +128,9 @@ export function buildGroupStandings(results: FixtureResult[]): GroupStandings[] 
   // Convert to sorted standings
   const standings: GroupStandings[] = [];
   for (const [group, teamsMap] of Array.from(groupMap.entries()).sort()) {
-    const teams = Array.from(teamsMap.values()).sort(standingComparator);
+    const initialSorted = Array.from(teamsMap.values()).sort(standingComparator);
+    const groupFixtures = groupResults.filter((r) => (r.group ?? "?").toUpperCase() === group);
+    const teams = applyHeadToHeadTiebreaking(initialSorted, groupFixtures);
     teams.forEach((t, i) => { t.groupRank = i + 1; });
 
     // Max games in a group of 4: each team plays 3
@@ -143,12 +145,72 @@ export function buildGroupStandings(results: FixtureResult[]): GroupStandings[] 
   return standings;
 }
 
-/** FIFA tiebreaker: points → GD → GF → (simplification: alphabetical) */
+/** Primary sort: points → GD → GF → alphabetical. H2H applied as a second pass in buildGroupStandings. */
 function standingComparator(a: TeamStanding, b: TeamStanding): number {
   if (b.points !== a.points) return b.points - a.points;
   if (b.gd !== a.gd) return b.gd - a.gd;
   if (b.gf !== a.gf) return b.gf - a.gf;
   return a.teamName.localeCompare(b.teamName);
+}
+
+/**
+ * FIFA tiebreaker step 2-4: among teams equal on points+GD+GF,
+ * sort by head-to-head points → H2H GD → H2H GF → alphabetical.
+ * Applied only to the subset of results between the tied teams.
+ */
+function applyHeadToHeadTiebreaking(
+  teams: TeamStanding[],
+  groupResults: FixtureResult[]
+): TeamStanding[] {
+  const result = [...teams];
+  let i = 0;
+  while (i < result.length) {
+    let j = i + 1;
+    while (
+      j < result.length &&
+      result[j].points === result[i].points &&
+      result[j].gd === result[i].gd &&
+      result[j].gf === result[i].gf
+    ) {
+      j++;
+    }
+    if (j - i > 1) {
+      const tied = result.slice(i, j);
+      const tiedNames = new Set(tied.map((t) => t.teamName));
+      const h2hResults = groupResults.filter(
+        (r) => tiedNames.has(r.homeTeam) && tiedNames.has(r.awayTeam)
+      );
+      const h2h = new Map<string, { pts: number; gd: number; gf: number }>();
+      tied.forEach((t) => h2h.set(t.teamName, { pts: 0, gd: 0, gf: 0 }));
+      for (const r of h2hResults) {
+        const home = h2h.get(r.homeTeam)!;
+        const away = h2h.get(r.awayTeam)!;
+        home.gf += r.homeScore;
+        home.gd += r.homeScore - r.awayScore;
+        away.gf += r.awayScore;
+        away.gd += r.awayScore - r.homeScore;
+        if (r.homeScore > r.awayScore) {
+          home.pts += 3;
+        } else if (r.homeScore === r.awayScore) {
+          home.pts += 1;
+          away.pts += 1;
+        } else {
+          away.pts += 3;
+        }
+      }
+      tied.sort((a, b) => {
+        const ha = h2h.get(a.teamName)!;
+        const hb = h2h.get(b.teamName)!;
+        if (hb.pts !== ha.pts) return hb.pts - ha.pts;
+        if (hb.gd !== ha.gd) return hb.gd - ha.gd;
+        if (hb.gf !== ha.gf) return hb.gf - ha.gf;
+        return a.teamName.localeCompare(b.teamName);
+      });
+      for (let k = 0; k < tied.length; k++) result[i + k] = tied[k];
+    }
+    i = j;
+  }
+  return result;
 }
 
 /**
@@ -197,14 +259,25 @@ function estimateAdvancementProbs(teams: TeamStanding[], isComplete: boolean): v
  * Format: [groupWinner, groupRunnerUp] → who they face in R32.
  * The pairing below follows FIFA's announced bracket for WC 2026 groups A-L.
  */
+/**
+ * WC 2026 R32 bracket — 16 matches.
+ * Slots 1-12: deterministic group winner vs runner-up pairings (groups A-L).
+ * Slots 13-16: the 8 best 3rd-place teams face group winners/runners-up in pairs
+ *   whose exact assignment depends on which groups' 3rd-place teams qualify —
+ *   this follows a FIFA-pre-determined table not yet published; we approximate
+ *   using four generic "best 3rd" slots that resolveSlot() maps to "Best 3rd (TBD)".
+ *   Each slot is unique — no duplicate entries.
+ */
 const R32_BRACKET: Array<[string, string]> = [
+  // Deterministic: each group winner faces the runner-up of an adjacent group
   ["1A", "2B"], ["1C", "2D"], ["1E", "2F"], ["1G", "2H"],
   ["1B", "2A"], ["1D", "2C"], ["1F", "2E"], ["1H", "2G"],
   ["1I", "2J"], ["1K", "2L"], ["1J", "2I"], ["1L", "2K"],
-  ["3A_D", "3E_H"],  // best 3rd-place bracket slots (approximation)
-  ["3I_L", "3A_D"],
-  ["3E_H", "3I_L"],
-  ["3A_D", "3E_H"],  // repeated placeholder for 8 3rd-place slots
+  // Approximate 3rd-place slots (4 matches, 8 teams — assignment TBD by FIFA draw)
+  ["3A_D", "3E_H"],  // best 3rd from groups A-D vs best 3rd from E-H
+  ["3I_L", "3A_L"],  // best 3rd from groups I-L vs 4th best 3rd (any group)
+  ["3E_L", "3A_E"],  // 3rd & 4th best remaining 3rd-place pairings
+  ["3best7", "3best8"], // 7th & 8th best 3rd-place (lowest in bracket)
 ];
 
 /**
@@ -275,8 +348,8 @@ function resolveSlot(
   slot: string,
   slotMap: Map<string, { team: string; prob: number }>
 ): { team: string; prob: number } | null {
-  // Handle multi-group 3rd-place slots (e.g. "3A_D" = best 3rd from groups A-D)
-  if (slot.startsWith("3") && slot.includes("_")) {
+  // All 3rd-place slots (composite like "3A_D", "3best7", etc.) are TBD until FIFA draw
+  if (slot.startsWith("3") && (slot.includes("_") || slot.startsWith("3best"))) {
     return { team: "Best 3rd (TBD)", prob: 0.60 };
   }
   return slotMap.get(slot) ?? null;

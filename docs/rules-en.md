@@ -1,4 +1,5 @@
 # Game Rules — Fantasy World Cup 2026 (Sport5 / Channel 5)
+<!-- version: 1.0.0 — source: Sport5 official rules (Hebrew), translated June 2026 -->
 
 Welcome to Sport5's Fantasy World Cup — a virtual football game that lets you assemble, manage and coach a squad drawn from all nations competing in World Cup 2026.
 
