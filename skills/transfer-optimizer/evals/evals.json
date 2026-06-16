@@ -1,0 +1,108 @@
+{
+  "skill_name": "transfer-optimizer",
+  "description": "Trigger-accuracy and output-quality evals for the transfer-optimizer skill.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "transfers-window-open",
+      "prompt": "My team needs transfers this round — what should I do? I'm in group stage.",
+      "expected_output": "Full 12-step EV analysis with transfer table, captain pick, starting XI, bench, chip recommendation, and budget summary. Must include TRANSFER WINDOW: OPEN banner with deadline.",
+      "assertions": [
+        {
+          "text": "Shows TRANSFER WINDOW: OPEN banner",
+          "passed": null,
+          "evidence": ""
+        },
+        {
+          "text": "Calls get_game_rules to load stage budget and caps",
+          "passed": null,
+          "evidence": ""
+        },
+        {
+          "text": "Calls compute_squad_ev and rank_transfer_candidates",
+          "passed": null,
+          "evidence": ""
+        },
+        {
+          "text": "Transfer table has OUT/IN columns with EV Gain and Budget Change",
+          "passed": null,
+          "evidence": ""
+        },
+        {
+          "text": "Names captain with EV justification",
+          "passed": null,
+          "evidence": ""
+        },
+        {
+          "text": "Validation checklist passes before output is presented",
+          "passed": null,
+          "evidence": ""
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "transfers-window-closed",
+      "prompt": "Can I still make transfers? The round started — Brazil just kicked off.",
+      "expected_output": "TRANSFER WINDOW: CLOSED banner prominently at top. Steps 6–8 skipped. Next Round Watchlist shown instead of transfer table. Captain and formation analysis for next round.",
+      "assertions": [
+        {
+          "text": "Banners TRANSFER WINDOW: CLOSED at top of output",
+          "passed": null,
+          "evidence": ""
+        },
+        {
+          "text": "Does NOT recommend specific transfers (no OUT/IN table for this round)",
+          "passed": null,
+          "evidence": ""
+        },
+        {
+          "text": "Shows Next Round Watchlist of players to target",
+          "passed": null,
+          "evidence": ""
+        },
+        {
+          "text": "States when next window opens (after round's last match completes)",
+          "passed": null,
+          "evidence": ""
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "captain-and-lineup",
+      "prompt": "Who should I captain and what lineup should I set for the quarter-finals?",
+      "expected_output": "Captain and vice-captain named with EV justification, fixture tier noted. Formation and bench stated. Differential flag shown if applicable (< 20% owned, EV > 75th pct). Uses predict_bracket_matchups for QF fixture tiers.",
+      "assertions": [
+        {
+          "text": "Captain named with EV value and fixture tier",
+          "passed": null,
+          "evidence": ""
+        },
+        {
+          "text": "Vice-captain named from different national team where possible",
+          "passed": null,
+          "evidence": ""
+        },
+        {
+          "text": "Uses predict_bracket_matchups (not group-stage hardcoded tiers) for QF fixtures",
+          "passed": null,
+          "evidence": ""
+        },
+        {
+          "text": "Formation is a valid formation (4-3-3, 4-4-2, 3-5-2, 3-4-3, 5-3-2, 5-4-1, or 4-5-1)",
+          "passed": null,
+          "evidence": ""
+        },
+        {
+          "text": "Differential flag shown if player owned by < 20% with EV above 75th percentile",
+          "passed": null,
+          "evidence": ""
+        }
+      ],
+      "files": []
+    }
+  ]
+}
