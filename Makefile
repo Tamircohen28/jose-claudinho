@@ -5,7 +5,9 @@ MCP         := mcp-server
 PLUGIN      := jose-claudinho
 MARKETPLACE := jose-claudinho
 
-.PHONY: help install typecheck build clean bundle plugin hooks
+.PHONY: help install typecheck build clean bundle plugin cursor-plugin codex-plugin hooks
+
+CURSOR_PLUGIN_DIR := $(HOME)/.cursor/plugins/local/$(PLUGIN)
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -48,6 +50,25 @@ plugin: bundle ## Build, then add the local marketplace & install the plugin (id
 		claude plugin install $(PLUGIN)@$(MARKETPLACE); \
 	fi
 	@echo "✓ done — restart Claude Code (or /plugin) to load the latest build."
+
+cursor-plugin: bundle ## Symlink plugin into ~/.cursor/plugins/local for local testing
+	@mkdir -p "$(HOME)/.cursor/plugins/local"
+	@if [ -L "$(CURSOR_PLUGIN_DIR)" ] || [ -d "$(CURSOR_PLUGIN_DIR)" ]; then \
+		rm -rf "$(CURSOR_PLUGIN_DIR)"; \
+	fi
+	@ln -s "$(CURDIR)" "$(CURSOR_PLUGIN_DIR)"
+	@echo "✓ symlinked $(CURSOR_PLUGIN_DIR) → $(CURDIR)"
+	@echo "  Reload Cursor (Developer: Reload Window) and enable fantasy-wc MCP in Settings → Tools & MCP."
+	@echo "  See docs/user/install/cursor.md"
+
+codex-plugin: bundle ## Register repo marketplace with Codex CLI (if installed)
+	@command -v codex >/dev/null 2>&1 || { \
+		echo "✗ 'codex' CLI not found on PATH — install Codex first."; exit 1; }
+	@codex plugin marketplace add "$(CURDIR)" 2>/dev/null || \
+		codex plugin marketplace add TamirCohen28/jose-claudinho 2>/dev/null || \
+		{ echo "  try: codex plugin marketplace add TamirCohen28/jose-claudinho"; exit 1; }
+	@echo "✓ marketplace registered — open Codex /plugins, install jose-claudinho, restart Codex."
+	@echo "  See docs/user/install/codex.md"
 
 hooks: ## Enable the local git hooks (blocks direct pushes to main)
 	git config core.hooksPath .githooks

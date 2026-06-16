@@ -6,15 +6,21 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-06-15
+
 ### Added
-- **`/league-round-report`** — combined Hebrew league report (utilization + watchlist).
-- Shared skill references under `skills/shared/references/` (Hebrew labels, league args,
-  error handling, report example).
+- **Multi-host support** — Cursor (`.cursor-plugin/`) and Codex (`.codex-plugin/`,
+  `.agents/plugins/marketplace.json`) manifests alongside Claude Code.
+- **`make cursor-plugin`** — symlink local install for Cursor (`~/.cursor/plugins/local/`).
+- **`make codex-plugin`** — register Codex marketplace from repo.
+- **`.cursor/mcp.json`** — MCP-only fallback when opening the repo in Cursor.
+- **`AGENTS.md`** — host-neutral agent guidance.
+- Per-host install guides under `docs/user/install/`.
+- `skills/shared/references/mcp-tool-names.md` — MCP prefix mapping per host.
 
 ### Changed
-- Expanded all round-utilization skills to v1.1.0 with full procedures, insights blocks,
-  and aligned output contracts.
-- `weekly-squad-advisor` v1.1.0 — error-handling section and `$ARGUMENTS` parsing.
+- All skills v1.2.0 — `disable-model-invocation` for Cursor/Codex; host-agnostic tool wording.
+- Commands note Claude-only `allowed-tools`; Cursor/Codex use `mcp__fantasy-wc__*` prefix.
 
 ## [1.1.0] - 2026-06-15
 
@@ -24,6 +30,9 @@ All notable changes to this project are documented here. The format follows
   WC fixtures to report played vs upcoming matches and games of interest.
 - Slash commands: `/team-round-utilization`, `/league-round-utilization`,
   `/league-watchlist` with matching internal skills (Hebrew output format).
+- **`/league-round-report`** — combined Hebrew league report (utilization + watchlist).
+- Shared skill references under `skills/shared/references/` (Hebrew labels, league args,
+  error handling, report example).
 - `mcp-server/src/nations.ts` — Sport5 nation registry + Hebrew→TheSportsDB aliases.
 - `mcp-server/src/roundUtilization.ts` — league-wide squad fetch and watchlist aggregation.
 - `sport5_get_league_table` now exposes `roundId` in structured output.
@@ -33,6 +42,9 @@ All notable changes to this project are documented here. The format follows
   storage, season and league ids now rely entirely on baked-in server defaults; the
   only env var a user ever sets is `SPORT5_COOKIE`. Optional env vars were removed
   from `.mcp.json` so they no longer need wiring up.
+- Expanded all round-utilization skills with full procedures, insights blocks,
+  and aligned output contracts.
+- `weekly-squad-advisor` — error-handling section and `$ARGUMENTS` parsing.
 
 ### Fixed
 - Unset or unsubstituted `${VAR}` placeholders (e.g. a literal `"${SPORTSDB_KEY}"`

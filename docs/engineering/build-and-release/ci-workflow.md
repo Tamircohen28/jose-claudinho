@@ -8,7 +8,8 @@ defined in [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml) and r
 
 ### `lint` / `validate`
 - Validates that the plugin manifests are well-formed JSON
-  (`.claude-plugin/plugin.json`, `.mcp.json`, `mcp-server/package.json`).
+  (`.claude-plugin/plugin.json`, `.cursor-plugin/plugin.json`, `.codex-plugin/plugin.json`,
+  `.mcp.json`, `.agents/plugins/marketplace.json`, `mcp-server/package.json`).
 
 ### `test` (typecheck + build)
 - `npm ci` in `mcp-server/`.

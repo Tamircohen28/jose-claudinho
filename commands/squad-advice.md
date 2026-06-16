@@ -15,6 +15,9 @@ allowed-tools: [
 ]
 ---
 
+> **Multi-host:** `allowed-tools` enforces access on Claude Code only. On Cursor and Codex,
+> the same logical tools appear as `mcp__fantasy-wc__<tool>` (see `skills/shared/references/mcp-tool-names.md`).
+
 Use the **weekly-squad-advisor** skill to produce this round's recommendation.
 
 Arguments (optional): `$ARGUMENTS` may name the tournament stage

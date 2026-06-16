@@ -2,27 +2,39 @@
 
 Zero to your first recommendation in about five minutes.
 
+## Pick your host
+
+| Host | Install | Then |
+|------|---------|------|
+| Claude Code | `make plugin` | Restart Claude Code |
+| Cursor | `make cursor-plugin` | Reload Cursor window |
+| Codex | `codex plugin marketplace add TamirCohen28/jose-claudinho` | Install in `/plugins`, restart |
+
+Details: [claude-code](install/claude-code.md) · [cursor](install/cursor.md) · [codex](install/codex.md)
+
 ## 1. Prerequisites
 
-- [Claude Code](https://claude.com/claude-code) installed.
-- [Node.js ≥ 18](https://nodejs.org) (only needed to build the bundle once).
-- A Sport5 Fantasy WC 2026 account (for team/league reads).
+- An AI host: [Claude Code](https://claude.com/claude-code), [Cursor](https://cursor.com), or [Codex](https://developers.openai.com/codex/plugins/)
+- [Node.js ≥ 18](https://nodejs.org) (to build the bundle once)
+- A Sport5 Fantasy WC 2026 account (for team/league reads)
 
 ## 2. Build the MCP bundle
 
 ```bash
-cd mcp-server
-npm install
-npm run build      # produces mcp-server/dist/index.js
-cd ..
+make bundle
 ```
 
-The bundle is a single self-contained file, so once built it runs without
-`node_modules`.
+Or manually:
+
+```bash
+cd mcp-server && npm install && npm run build && cd ..
+```
+
+The bundle is a single self-contained file (`mcp-server/dist/index.js`).
 
 ## 3. Install the plugin
 
-From the repo root (recommended):
+**Claude Code:**
 
 ```bash
 make plugin
@@ -30,16 +42,23 @@ make plugin
 
 Then restart Claude Code (or run `/plugin`).
 
-Or manually from an interactive `claude` session:
+**Cursor:**
 
-```text
-/plugin marketplace add /Users/tamircohen/Projects/jose-claudinho
-/plugin install jose-claudinho@jose-claudinho
+```bash
+make cursor-plugin
 ```
 
-(Adjust the path to wherever you cloned the repo.)
+Then reload Cursor (Developer: Reload Window).
 
-To **update** after pulling new changes: run `make plugin` again and restart Claude Code.
+**Codex:**
+
+```bash
+codex plugin marketplace add TamirCohen28/jose-claudinho
+```
+
+Open `/plugins`, install **jose-claudinho**, restart Codex.
+
+To **update** after pulling: re-run your host's install command and restart the host.
 
 ## 4. Give it your session cookie
 
@@ -49,7 +68,7 @@ the plugin needs your Sport5 session cookie:
 1. Open <https://fantasywc.sport5.co.il> while logged in.
 2. DevTools → **Network** → click any `dreamteam.sport5.co.il/api/...` request.
 3. **Headers** → copy the full **Cookie** request-header value.
-4. Set it before launching Claude Code:
+4. Set it before launching your AI host:
 
 ```bash
 export SPORT5_COOKIE='<paste the Cookie header here>'
@@ -64,8 +83,8 @@ failing.
 ```text
 /snapshot-league                  # capture this round's top teams (do this weekly)
 /squad-advice qf                  # plan for the quarter-final round
-/league-round-utilization כצים    # private league: played vs upcoming this round
-/league-watchlist כצים            # upcoming matches that matter for the league
+/league-round-report כצים         # full private-league report (recommended)
+/team-round-utilization           # your squad: played vs upcoming
 ```
 
 Or ask in natural language — *"who should I captain this week?"* — and the

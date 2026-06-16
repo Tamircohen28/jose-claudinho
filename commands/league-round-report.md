@@ -8,6 +8,9 @@ allowed-tools: [
 ]
 ---
 
+> **Multi-host:** `allowed-tools` enforces access on Claude Code only. On Cursor and Codex,
+> the same logical tools appear as `mcp__fantasy-wc__<tool>`.
+
 Use the **league-round-report** skill to produce the full combined league round analysis.
 
 Arguments: `$ARGUMENTS` should name the league (e.g. כצים) or give a leagueId, and optionally

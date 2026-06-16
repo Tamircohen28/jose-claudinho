@@ -1,12 +1,12 @@
 ---
 name: league-watchlist
 description: >
-  Internal skill for /league-watchlist. Lists upcoming round fixtures where league fantasy
-  squads have players — grouped by match and nation, fantasy-team → player mapping, top-games
-  summary with full Hebrew match labels. Israel times UTC+3. Complements league-round-utilization;
-  use league-round-report for the full combined output.
-version: 1.1.0
+  Lists upcoming round fixtures where league fantasy squads have players — grouped by match,
+  Hebrew labels, top-games summary. Use for /league-watchlist or games-of-interest analysis.
+  Complements league-round-utilization; use league-round-report for the full combined output.
+version: 1.2.0
 user-invocable: false
+disable-model-invocation: true
 ---
 
 # League Watchlist — Games of Interest
@@ -16,7 +16,7 @@ is involved — the "games of interest" for watching with your private league.
 
 ## Tools
 
-Prefixed `mcp__plugin_jose-claudinho_fantasy-wc__*`:
+`fantasy-wc` MCP tools (see `../shared/references/mcp-tool-names.md`):
 
 - `league_watchlist` — primary data (`includePlayed=false` unless user asks for finished games)
 - `sport5_get_my_leagues` — resolve league
@@ -26,6 +26,7 @@ Read-and-recommend only.
 ## References
 
 - `../shared/references/hebrew-labels.md`
+- `../shared/references/mcp-tool-names.md`
 - `../shared/references/league-args.md`
 - `../shared/references/error-handling.md`
 - `../shared/references/league-report-example.md`

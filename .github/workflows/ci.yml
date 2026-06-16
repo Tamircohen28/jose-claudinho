@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v6
       - name: Validate JSON manifests
         run: |
-          for f in .claude-plugin/plugin.json .mcp.json mcp-server/package.json; do
+          for f in .claude-plugin/plugin.json .cursor-plugin/plugin.json .codex-plugin/plugin.json .mcp.json .agents/plugins/marketplace.json mcp-server/package.json; do
             echo "Validating $f"
             python3 -c "import json,sys; json.load(open('$f'))"
           done
