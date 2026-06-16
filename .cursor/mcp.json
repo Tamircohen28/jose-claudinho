@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "fantasy-wc": {
+      "command": "node",
+      "args": ["${workspaceFolder}/mcp-server/dist/index.js"],
+      "env": {
+        "SPORT5_COOKIE": "${env:SPORT5_COOKIE}"
+      }
+    }
+  }
+}

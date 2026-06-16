@@ -1,12 +1,12 @@
 ---
 name: league-round-utilization
 description: >
-  Internal skill for /league-round-utilization. For a private league (name or leagueId),
-  shows per fantasy team how many of 15 squad players already played their nation match
-  vs still waiting. Insights block, dynamic Hebrew stage label, sorted by pace. Max 50
-  teams. Pair with league-watchlist or use league-round-report for full analysis.
-version: 1.1.0
+  Shows per fantasy team how many squad players already played vs still waiting this round.
+  Use for /league-round-utilization or private-league pace analysis. Hebrew insights,
+  max 50 teams. Pair with league-watchlist or league-round-report.
+version: 1.2.0
 user-invocable: false
+disable-model-invocation: true
 ---
 
 # League Round Utilization
@@ -17,7 +17,7 @@ many are still waiting (all 15 players).
 
 ## Tools
 
-Prefixed `mcp__plugin_jose-claudinho_fantasy-wc__*`:
+`fantasy-wc` MCP tools (see `../shared/references/mcp-tool-names.md`):
 
 - `league_round_utilization` — primary data
 - `sport5_get_my_leagues` — resolve league + identify user's team name if needed
@@ -27,6 +27,7 @@ Read-and-recommend only.
 ## References
 
 - `../shared/references/hebrew-labels.md`
+- `../shared/references/mcp-tool-names.md`
 - `../shared/references/league-args.md`
 - `../shared/references/error-handling.md`
 - `../shared/references/league-report-example.md` — target table + insights format

@@ -7,10 +7,13 @@
 [![CI](https://github.com/TamirCohen28/jose-claudinho/actions/workflows/ci.yml/badge.svg)](https://github.com/TamirCohen28/jose-claudinho/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-plugin-7c3aed.svg)](https://claude.com/claude-code)
+[![Cursor Plugin](https://img.shields.io/badge/Cursor-plugin-000000.svg)](https://cursor.com/docs/plugins)
+[![Codex Plugin](https://img.shields.io/badge/Codex-plugin-412991.svg)](https://developers.openai.com/codex/plugins/)
 
 > Your AI assistant manager for **Sport5 Fantasy World Cup 2026**.
 
-José Claudinho is a [Claude Code](https://claude.com/claude-code) **plugin** that
+José Claudinho is a **multi-host plugin** for [Claude Code](https://claude.com/claude-code),
+[Cursor](https://cursor.com), and [Codex](https://developers.openai.com/codex/plugins/) that
 bundles an MCP server + skills + slash commands. It reads the player market, your
 team, your rivals' top teams, the league tables and the World Cup fixtures, learns
 from weekly snapshots of the best teams, and recommends the transfers, captain and
@@ -65,16 +68,22 @@ you a concrete plan; you apply it in the app.
 
 ## Prerequisites
 
-- **[Claude Code](https://claude.com/claude-code)** — the host for the plugin, MCP server and skills.
+- **An AI host** — [Claude Code](https://claude.com/claude-code), [Cursor](https://cursor.com),
+  or [Codex](https://developers.openai.com/codex/plugins/).
 - **Node.js ≥ 18** (developed on 22) — to build the MCP bundle. The runtime bundle is committed, so end-users only need Node to *run* it, not to install dependencies.
 - **A Sport5 Fantasy WC 2026 account** — for the private (team/league) reads. The player market, rules and fixtures work without one.
 
 ## Install
 
-This repo **is** the plugin. Build the MCP bundle, then add it to Claude Code.
+This repo **is** the plugin. Pick your host:
 
-**One command** (builds the bundle, then adds the marketplace & installs the plugin
-— idempotent, safe to re-run after server changes):
+| Host | Command | Docs |
+|------|---------|------|
+| Claude Code | `make plugin` | [install guide](docs/user/install/claude-code.md) |
+| Cursor | `make cursor-plugin` | [install guide](docs/user/install/cursor.md) |
+| Codex | `make codex-plugin` or `codex plugin marketplace add TamirCohen28/jose-claudinho` | [install guide](docs/user/install/codex.md) |
+
+**Claude Code** (builds bundle + installs marketplace plugin — idempotent):
 
 ```bash
 make plugin
@@ -82,10 +91,13 @@ make plugin
 
 It builds `mcp-server/dist/index.js`, then adds the local marketplace and installs
 `jose-claudinho@jose-claudinho` — updating in place if either is already present.
-Restart Claude Code (or run `/plugin`) afterward to load the latest build.
+Restart your AI host after install to load the latest build.
+
+Opening this repo in **Cursor** also enables MCP via [`.cursor/mcp.json`](.cursor/mcp.json)
+(MCP-only; skills need the full plugin install).
 
 <details>
-<summary>Or do it by hand</summary>
+<summary>Claude Code manual install</summary>
 
 ```bash
 # 1. Build the self-contained MCP bundle (one time, and after server changes)

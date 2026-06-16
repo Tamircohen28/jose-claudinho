@@ -8,6 +8,9 @@ allowed-tools: [
 ]
 ---
 
+> **Multi-host:** `allowed-tools` enforces access on Claude Code only. On Cursor and Codex,
+> the same logical tools appear as `mcp__fantasy-wc__<tool>`.
+
 Capture this round's learning data.
 
 1. Run `snapshot_top_teams` (default topN 50, overall league unless `$ARGUMENTS`

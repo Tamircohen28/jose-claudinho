@@ -9,5 +9,8 @@
   "homepage": "https://github.com/TamirCohen28/jose-claudinho",
   "repository": "https://github.com/TamirCohen28/jose-claudinho",
   "license": "MIT",
-  "keywords": ["fantasy-football", "world-cup", "sport5", "mcp", "advisor"]
+  "keywords": ["fantasy-football", "world-cup", "sport5", "mcp", "advisor"],
+  "skills": "./skills/",
+  "commands": "./commands/",
+  "mcpServers": "./.mcp.json"
 }

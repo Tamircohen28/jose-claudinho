@@ -4,7 +4,7 @@ Guidance for Claude Code sessions working in this repo.
 
 ## Project overview
 
-José Claudinho is a **Claude Code plugin** that helps a user manage their team in
+José Claudinho is a **multi-host plugin** (Claude Code, Cursor, Codex) that helps a user manage their team in
 **Sport5 Fantasy World Cup 2026**. It bundles an MCP server (`fantasy-wc`), skills
 and slash commands. It reads the player market, the user's team, rival top teams,
 league tables and World Cup fixtures; snapshots the best teams each round into local
@@ -16,7 +16,11 @@ reports round utilization (played vs upcoming) and league watchlists. It is
 
 | Path | Purpose |
 |------|---------|
-| `.claude-plugin/plugin.json` | Plugin manifest (name, version, author) |
+| `.claude-plugin/plugin.json` | Claude Code plugin manifest |
+| `.cursor-plugin/plugin.json` | Cursor plugin manifest |
+| `.codex-plugin/plugin.json` | Codex plugin manifest |
+| `.agents/plugins/marketplace.json` | Codex marketplace catalog |
+| `AGENTS.md` | Host-neutral agent guidance |
 | `.mcp.json` | MCP server registration (`fantasy-wc`, env passthrough) |
 | `mcp-server/src/index.ts` | Registers all 13 MCP tools (Zod schemas + handlers) |
 | `mcp-server/src/rules.ts` | **Authoritative** encoded game rules (budgets, caps, scoring, chips) |

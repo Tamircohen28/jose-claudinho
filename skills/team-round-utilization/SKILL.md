@@ -1,12 +1,12 @@
 ---
 name: team-round-utilization
 description: >
-  Internal skill for /team-round-utilization. For one fantasy team (default yours),
-  maps all 15 squad players to national-team fixtures — played/upcoming, round points,
-  XI/bench, position. Resolves team via userId, teamName+leagueId, or connected account.
-  Hebrew output (Israel UTC+3). Read-and-recommend only; invoked by command.
-version: 1.1.0
+  Maps one fantasy team's 15 players to national-team fixtures — played/upcoming, round
+  points, XI/bench. Use for /team-round-utilization or when the user asks who played
+  this round on their squad. Hebrew output, Israel UTC+3.
+version: 1.2.0
 user-invocable: false
+disable-model-invocation: true
 ---
 
 # Team Round Utilization
@@ -16,7 +16,7 @@ team's match in the current fantasy round — with sorting, flags, and mid-round
 
 ## Tools
 
-Prefixed `mcp__plugin_jose-claudinho_fantasy-wc__*`:
+`fantasy-wc` MCP tools (see `../shared/references/mcp-tool-names.md` for host prefixes):
 
 - `team_round_utilization` — primary data
 - `sport5_get_my_leagues` — resolve `leagueId` from name
@@ -28,6 +28,7 @@ Read-and-recommend only. Never mutate the user's team.
 ## References
 
 - `../shared/references/hebrew-labels.md` — stage labels, status emojis, match formatting
+- `../shared/references/mcp-tool-names.md` — host-specific MCP prefixes
 - `../shared/references/league-args.md` — parse `$ARGUMENTS`
 - `../shared/references/error-handling.md` — cookie, not found, fixture mismatch
 

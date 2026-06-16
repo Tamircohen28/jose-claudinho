@@ -1,0 +1,26 @@
+{
+  "name": "jose-claudinho",
+  "owner": {
+    "name": "TamirCohen28"
+  },
+  "interface": {
+    "displayName": "José Claudinho"
+  },
+  "plugins": [
+    {
+      "name": "jose-claudinho",
+      "description": "Sport5 Fantasy World Cup 2026 assistant — squad advice, round utilization, league watchlists.",
+      "version": "1.2.0",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/TamirCohen28/jose-claudinho.git",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

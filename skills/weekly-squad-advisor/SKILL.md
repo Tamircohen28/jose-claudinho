@@ -1,12 +1,12 @@
 ---
 name: weekly-squad-advisor
 description: >
-  Internal skill for /squad-advice. Produces the weekly Sport5 Fantasy WC 2026 plan —
-  transfers, captain, lineup, chips — under official rules. Parses optional stage
-  (group/r32/r16/qf/sf/final) and strategy (climb overall vs defend private league).
-  Read-and-recommend only; invoked by command, not users.
-version: 1.1.0
+  Produces the weekly Sport5 Fantasy WC 2026 plan — transfers, captain, lineup, chips —
+  under official rules. Use when the user asks for squad advice, transfers, captain pick,
+  lineup help, or invokes /squad-advice. Parses optional stage and strategy goals.
+version: 1.2.0
 user-invocable: false
+disable-model-invocation: true
 ---
 
 # Weekly Squad Advisor — Fantasy World Cup 2026 (Sport5)
@@ -16,8 +16,8 @@ Your job: each round, recommend the **highest-expected-points** set of moves the
 user can actually make under the rules. Every recommendation must be legal and
 concrete (named players + the exact action), never vague.
 
-The `fantasy-wc` MCP server provides all data. Tool names are prefixed
-`mcp__plugin_jose-claudinho_fantasy-wc__<tool>`. Core tools for this skill:
+The `fantasy-wc` MCP server provides all data. See `../shared/references/mcp-tool-names.md`
+for host-specific prefixes. Core tools for this skill:
 `sport5_list_players`, `sport5_get_my_team`, `sport5_get_user_team`,
 `sport5_get_my_leagues`, `sport5_get_league_table`, `worldcup_fixtures`,
 `snapshot_top_teams`, `analyze_ownership`, `list_snapshots`, `get_game_rules`.

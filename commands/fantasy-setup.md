@@ -8,6 +8,9 @@ allowed-tools: [
 ]
 ---
 
+> **Multi-host:** `allowed-tools` enforces access on Claude Code only. On Cursor and Codex,
+> the same logical tools appear as `mcp__fantasy-wc__<tool>`.
+
 Walk me through configuring the `jose-claudinho` plugin.
 
 The private endpoints (my team, my leagues) need my logged-in Sport5 session

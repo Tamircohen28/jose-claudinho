@@ -10,6 +10,9 @@ allowed-tools: [
 ]
 ---
 
+> **Multi-host:** `allowed-tools` enforces access on Claude Code only. On Cursor and Codex,
+> the same logical tools appear as `mcp__fantasy-wc__<tool>`.
+
 Use the **team-round-utilization** skill to analyze one fantasy team's round utilization.
 
 Arguments (optional): `$ARGUMENTS` may be a team name (with league context), a userId,

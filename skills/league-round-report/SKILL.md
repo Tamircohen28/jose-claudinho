@@ -1,12 +1,12 @@
 ---
 name: league-round-report
 description: >
-  Internal skill for /league-round-report. Full private-league round analysis in one Hebrew
-  report: utilization table (played vs upcoming per team), games of interest watchlist, and
-  top-games summary. Calls league_round_utilization + league_watchlist. Default for "analyze
-  my league this round". Read-and-recommend only; invoked by command.
-version: 1.1.0
+  Full private-league round report in Hebrew: utilization table, games-of-interest watchlist,
+  top-games summary. Use for /league-round-report or when the user wants a complete league
+  round analysis (e.g. כצים-style). Default for "analyze my league this round".
+version: 1.2.0
 user-invocable: false
+disable-model-invocation: true
 ---
 
 # League Round Report (full)
@@ -16,7 +16,7 @@ the format managers use for leagues like כצים.
 
 ## Tools
 
-Prefixed `mcp__plugin_jose-claudinho_fantasy-wc__*`:
+`fantasy-wc` MCP tools (see `../shared/references/mcp-tool-names.md`):
 
 - `league_round_utilization`
 - `league_watchlist` (`includePlayed=false` unless user wants finished games)
@@ -27,6 +27,7 @@ Read-and-recommend only.
 ## References
 
 - `../shared/references/hebrew-labels.md`
+- `../shared/references/mcp-tool-names.md`
 - `../shared/references/league-args.md`
 - `../shared/references/error-handling.md`
 - `../shared/references/league-report-example.md` — **authoritative output contract**

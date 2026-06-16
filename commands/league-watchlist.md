@@ -7,6 +7,9 @@ allowed-tools: [
 ]
 ---
 
+> **Multi-host:** `allowed-tools` enforces access on Claude Code only. On Cursor and Codex,
+> the same logical tools appear as `mcp__fantasy-wc__<tool>`.
+
 Use the **league-watchlist** skill to produce the games-of-interest watchlist for a league.
 
 Arguments: `$ARGUMENTS` should name the league (e.g. כצים) or give a leagueId, and optionally
