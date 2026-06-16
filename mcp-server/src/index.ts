@@ -19,6 +19,21 @@ import {
   positionLabel,
 } from "./transform.js";
 import { rulesForStage } from "./rules.js";
+import {
+  buildFixtureDifficulty,
+  computePlayerEV,
+  computeSquadEV,
+  evaluateTransfer,
+  evaluateChips,
+  type OpponentTier,
+  type FixtureDifficulty,
+} from "./scoring.js";
+import {
+  buildGroupStandings,
+  predictProbableMatchups,
+  deriveOpponentTierFromForm,
+  type FixtureResult,
+} from "./bracketPredictor.js";
 import { getFixtures } from "./fixtures.js";
 import { buildSnapshot, analyzeOwnership } from "./analysis.js";
 import { writeSnapshot, listSnapshots, readSnapshot, dataDir } from "./storage.js";
@@ -608,6 +623,329 @@ server.registerTool(
           )
           .join("\n");
       return result(data, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+
+// ----------------------------------------------------------------------------
+// 14. Compute squad EV (expected value engine).
+// ----------------------------------------------------------------------------
+server.registerTool(
+  "compute_squad_ev",
+  {
+    title: "Compute squad expected value",
+    description:
+      "Given a list of players (from your squad or transfer candidates) and their " +
+      "upcoming fixture difficulties, compute expected Fantasy points (EV) for each " +
+      "player. Returns per-player EV breakdown (goals, assists, clean sheet, cards, " +
+      "penalties), best captain pick, and chip timing recommendations. " +
+      "All inputs are pure data — no Sport5 cookie required for this tool itself.",
+    inputSchema: {
+      players: z
+        .array(
+          z.object({
+            playerId: z.number().int(),
+            playerName: z.string(),
+            position: z.number().int().min(1).max(4).describe("1=GK 2=DEF 3=MID 4=FWD"),
+            priceM: z.number().describe("Player price in millions"),
+            isStarter: z.boolean().optional().describe("True if in starting XI (default true)"),
+            formMultiplier: z
+              .number()
+              .min(0)
+              .max(2)
+              .optional()
+              .describe("Adjust EV for form: >1 in-form, <1 out-of-form (default 1.0)"),
+            fixtures: z.array(
+              z.object({
+                opponent: z.string(),
+                tier: z
+                  .enum(["elite", "strong", "medium", "weak"])
+                  .describe(
+                    "Opponent strength: elite=Brazil/France/Argentina/England, " +
+                    "strong=Portugal/Netherlands/Germany, medium=USA/Japan/Morocco, weak=remainder"
+                  ),
+                fixtureId: z.string().optional(),
+              })
+            ).describe("Upcoming fixtures for this player's national team"),
+          })
+        )
+        .describe("Players to evaluate (squad members or transfer candidates)"),
+      starterIds: z
+        .array(z.number().int())
+        .optional()
+        .describe("Player IDs that are in the starting XI (for squad EV split). Defaults to all players."),
+      chipsUsed: z
+        .array(z.string())
+        .optional()
+        .describe("Chip keys already used this season: triple_captain, five_subs, double_captains, all_squad_points"),
+      roundsRemaining: z
+        .number()
+        .int()
+        .min(1)
+        .max(6)
+        .optional()
+        .describe("Rounds remaining in the tournament (default 3)"),
+      stage: z
+        .enum(["group", "r32", "r16", "qf", "sf", "final"])
+        .optional()
+        .describe("Current tournament stage (default group)"),
+    },
+    annotations: { readOnlyHint: true },
+  },
+  async (args) => {
+    try {
+      const playerEVs = args.players.map((p) => {
+        const fixtures: FixtureDifficulty[] = (p.fixtures ?? []).map((f) =>
+          buildFixtureDifficulty(f.tier as OpponentTier, f.opponent, f.fixtureId)
+        );
+        return computePlayerEV(
+          p.playerId,
+          p.playerName,
+          p.position,
+          p.priceM,
+          fixtures,
+          p.formMultiplier ?? 1.0
+        );
+      });
+
+      const starterSet = new Set<number>(
+        args.starterIds ?? args.players.map((p) => p.playerId)
+      );
+      const squadEV = computeSquadEV(playerEVs, starterSet);
+
+      const chips = evaluateChips({
+        squadEV,
+        roundsRemaining: args.roundsRemaining ?? 3,
+        chipsUsed: args.chipsUsed ?? [],
+        stage: args.stage ?? "group",
+      });
+
+      const sorted = [...playerEVs].sort((a, b) => b.totalEV - a.totalEV);
+      const summary =
+        `Squad EV: ${squadEV.totalStartingXIEV.toFixed(1)} pts (XI) + ${squadEV.totalBenchEV.toFixed(1)} pts (bench).\n` +
+        `Best captain: ${squadEV.bestCaptainName} (${(playerEVs.find((p) => p.playerId === squadEV.bestCaptainId)?.totalEV ?? 0).toFixed(1)} EV → ×2 = ${squadEV.bestCaptainEVGain.toFixed(1)} extra pts).\n` +
+        `Top 5 by EV:\n` +
+        sorted
+          .slice(0, 5)
+          .map(
+            (p) =>
+              `  ${p.playerName} [${["", "GK", "DEF", "MID", "FWD"][p.position]}] ${p.fixtureCount} fixture(s) → ${p.totalEV.toFixed(1)} EV (${p.evPerMillion.toFixed(2)} per M)`
+          )
+          .join("\n") +
+        `\nChip advice:\n` +
+        chips
+          .filter((c) => !c.alreadyUsed)
+          .map((c) => `  ${c.recommendNow ? "✅ USE NOW" : "⏳ hold"} ${c.chipLabel}: ${c.rationale}`)
+          .join("\n");
+
+      return result({ squadEV, chips, players: playerEVs }, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+
+// ----------------------------------------------------------------------------
+// 15. Predict bracket matchups from group results.
+// ----------------------------------------------------------------------------
+server.registerTool(
+  "predict_bracket_matchups",
+  {
+    title: "Predict bracket matchups",
+    description:
+      "Given World Cup group-stage fixture results, compute current group standings, " +
+      "estimate P(advance) per team, derive expected additional rounds for each national " +
+      "team's players, and predict probable Round-of-32 matchups. " +
+      "Feed in results from worldcup_fixtures (past). No cookie required.",
+    inputSchema: {
+      results: z
+        .array(
+          z.object({
+            homeTeam: z.string(),
+            awayTeam: z.string(),
+            homeScore: z.number().int(),
+            awayScore: z.number().int(),
+            group: z.string().optional().describe("Group letter A–L"),
+            round: z.number().int().optional().describe("Matchday 1, 2, or 3"),
+            stage: z.string().optional().describe("'group', 'r32', etc."),
+            date: z.string().optional(),
+          })
+        )
+        .describe("Played fixture results from worldcup_fixtures (past)"),
+    },
+    annotations: { readOnlyHint: true },
+  },
+  async (args) => {
+    try {
+      const standings = buildGroupStandings(args.results as FixtureResult[]);
+      const prediction = predictProbableMatchups(standings);
+
+      const groupSummary = prediction.groups
+        .map((g) => {
+          const teams = g.teams
+            .map(
+              (t) =>
+                `    ${t.groupRank}. ${t.teamName} — ${t.points}pts (${t.played}G ${t.won}W ${t.drawn}D ${t.lost}L, GD${t.gd > 0 ? "+" : ""}${t.gd}) P(advance)=${(t.probAdvanceFromGroup * 100).toFixed(0)}%`
+            )
+            .join("\n");
+          return `  Group ${g.group}${g.isComplete ? " ✓" : ""}:\n${teams}`;
+        })
+        .join("\n");
+
+      const matchupSummary = prediction.probableMatchups
+        .slice(0, 8)
+        .map(
+          (m) =>
+            `  ${m.team1} vs ${m.team2} — matchup P=${(m.matchupProbability * 100).toFixed(0)}%`
+        )
+        .join("\n");
+
+      const summary =
+        `=== Group Standings ===\n${groupSummary}\n\n` +
+        `=== Probable R32 Matchups (top 8) ===\n${matchupSummary}`;
+
+      return result(prediction, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+
+// ----------------------------------------------------------------------------
+// 16. Rank transfer candidates.
+// ----------------------------------------------------------------------------
+server.registerTool(
+  "rank_transfer_candidates",
+  {
+    title: "Rank transfer candidates",
+    description:
+      "Given your current squad (from get_my_team) and a list of transfer candidates " +
+      "(from list_players), evaluate each (player_out, player_in) swap for EV gain, " +
+      "budget feasibility, and national-team cap compliance. Returns the top N swaps " +
+      "ranked by expected point gain. Provide player EVs from compute_squad_ev.",
+    inputSchema: {
+      squadPlayers: z
+        .array(
+          z.object({
+            playerId: z.number().int(),
+            playerName: z.string(),
+            position: z.number().int().min(1).max(4),
+            priceM: z.number(),
+            totalEV: z.number().describe("EV from compute_squad_ev"),
+            nationTeamId: z.number().int(),
+            isStarter: z.boolean().optional(),
+          })
+        )
+        .describe("Your current 15-player squad with EVs from compute_squad_ev"),
+      candidates: z
+        .array(
+          z.object({
+            playerId: z.number().int(),
+            playerName: z.string(),
+            position: z.number().int().min(1).max(4),
+            priceM: z.number(),
+            totalEV: z.number().describe("EV from compute_squad_ev"),
+            nationTeamId: z.number().int(),
+          })
+        )
+        .describe("Market players to consider bringing in"),
+      freeBudgetM: z
+        .number()
+        .describe("Remaining free budget after selling everyone you sell (from get_my_team)"),
+      maxPerNationalTeam: z
+        .number()
+        .int()
+        .describe("Stage cap on players per national team (from get_game_rules)"),
+      topN: z
+        .number()
+        .int()
+        .min(1)
+        .max(30)
+        .optional()
+        .describe("Return top N transfer candidates (default 10)"),
+    },
+    annotations: { readOnlyHint: true },
+  },
+  async (args) => {
+    try {
+      // Build nation team count map from current squad
+      const nationCounts: Record<number, number> = {};
+      for (const p of args.squadPlayers) {
+        nationCounts[p.nationTeamId] = (nationCounts[p.nationTeamId] ?? 0) + 1;
+      }
+
+      const transfers = [];
+      for (const playerOut of args.squadPlayers) {
+        // Budget freed by selling this player
+        const budgetAfterSell = args.freeBudgetM + playerOut.priceM;
+        // Nation counts after removing playerOut
+        const countsAfterSell = { ...nationCounts };
+        countsAfterSell[playerOut.nationTeamId] = Math.max(0, (countsAfterSell[playerOut.nationTeamId] ?? 0) - 1);
+
+        for (const playerIn of args.candidates) {
+          // Skip if same player
+          if (playerIn.playerId === playerOut.playerId) continue;
+          // Skip if candidate already in squad
+          if (args.squadPlayers.some((p) => p.playerId === playerIn.playerId)) continue;
+
+          const outEV: import("./scoring.js").PlayerEV = {
+            playerId: playerOut.playerId,
+            playerName: playerOut.playerName,
+            position: playerOut.position,
+            price: playerOut.priceM,
+            fixtureCount: 0,
+            perFixtureEV: 0,
+            totalEV: playerOut.totalEV,
+            captainEV: playerOut.totalEV * 2,
+            tripleCaptainEV: playerOut.totalEV * 3,
+            evPerMillion: playerOut.priceM > 0 ? playerOut.totalEV / playerOut.priceM : 0,
+            fixtures: [],
+          };
+          const inEV: import("./scoring.js").PlayerEV = {
+            playerId: playerIn.playerId,
+            playerName: playerIn.playerName,
+            position: playerIn.position,
+            price: playerIn.priceM,
+            fixtureCount: 0,
+            perFixtureEV: 0,
+            totalEV: playerIn.totalEV,
+            captainEV: playerIn.totalEV * 2,
+            tripleCaptainEV: playerIn.totalEV * 3,
+            evPerMillion: playerIn.priceM > 0 ? playerIn.totalEV / playerIn.priceM : 0,
+            fixtures: [],
+          };
+
+          const t = evaluateTransfer({
+            playerOut: outEV,
+            playerIn: inEV,
+            budgetM: budgetAfterSell,
+            nationTeamCounts: countsAfterSell,
+            playerOutNationId: playerOut.nationTeamId,
+            playerInNationId: playerIn.nationTeamId,
+            maxPerNationalTeam: args.maxPerNationalTeam,
+          });
+          transfers.push(t);
+        }
+      }
+
+      const topN = args.topN ?? 10;
+      const feasible = transfers
+        .filter((t) => t.isFeasible)
+        .sort((a, b) => b.evGain - a.evGain)
+        .slice(0, topN);
+
+      const summary =
+        `Top ${feasible.length} feasible transfers (ranked by EV gain):\n` +
+        feasible
+          .map(
+            (t, i) =>
+              `${i + 1}. OUT ${t.playerOutName} → IN ${t.playerInName} | +${t.evGain.toFixed(1)} EV | budget Δ${t.budgetDelta > 0 ? "+" : ""}${t.budgetDelta.toFixed(1)}M`
+          )
+          .join("\n");
+
+      return result({ transfers: feasible, totalEvaluated: transfers.length }, summary);
     } catch (e) {
       return errorResult(e);
     }
