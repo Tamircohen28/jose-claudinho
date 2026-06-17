@@ -42,6 +42,10 @@ import {
   getLeagueRoundUtilization,
   getLeagueWatchlist,
 } from "./roundUtilization.js";
+import { fetchAndCacheInjuries } from "./injuryClient.js";
+import { fetchAndCacheLineupPredictions } from "./lineupScraper.js";
+import { buildAvailabilityMap, buildLineupMap } from "./playerMapping.js";
+import { buildNationRegistry } from "./nations.js";
 
 const server = new McpServer({
   name: "fantasy-wc",
@@ -691,28 +695,84 @@ server.registerTool(
         .enum(["group", "r32", "r16", "qf", "sf", "final"])
         .optional()
         .describe("Current tournament stage (default group)"),
+      availabilityData: z
+        .array(
+          z.object({
+            playerId: z.number().int(),
+            status: z.enum(["injured", "suspended", "doubtful", "fit"]),
+          })
+        )
+        .optional()
+        .describe(
+          "Per-player availability from get_player_availability. " +
+          "injured/suspended → formMultiplier=0; doubtful → formMultiplier=0.4; fit → 1.0 (default). " +
+          "Overrides any per-player formMultiplier already in the players array."
+        ),
+      lineupData: z
+        .array(
+          z.object({
+            playerId: z.number().int(),
+            predictedStarter: z.boolean(),
+            confidence: z.number().min(0).max(1).optional(),
+          })
+        )
+        .optional()
+        .describe(
+          "Per-player lineup predictions from get_lineup_predictions. " +
+          "Overrides per-player isStarter and the starterIds list."
+        ),
     },
     annotations: { readOnlyHint: true },
   },
   async (args) => {
     try {
+      // Build availability and lineup override maps from optional enrichment data
+      const availOverride = new Map<number, number>(); // playerId → formMultiplier
+      for (const a of args.availabilityData ?? []) {
+        const fm =
+          a.status === "injured" || a.status === "suspended" ? 0
+          : a.status === "doubtful" ? 0.4
+          : 1.0;
+        availOverride.set(a.playerId, fm);
+      }
+
+      const lineupOverride = new Map<number, boolean>(); // playerId → predictedStarter
+      for (const l of args.lineupData ?? []) {
+        lineupOverride.set(l.playerId, l.predictedStarter);
+      }
+
       const playerEVs = args.players.map((p) => {
         const fixtures: FixtureDifficulty[] = (p.fixtures ?? []).map((f) =>
           buildFixtureDifficulty(f.tier as OpponentTier, f.opponent, f.fixtureId)
         );
+        // availabilityData overrides per-player formMultiplier
+        const formMultiplier = availOverride.has(p.playerId)
+          ? availOverride.get(p.playerId)!
+          : (p.formMultiplier ?? 1.0);
         return computePlayerEV(
           p.playerId,
           p.playerName,
           p.position,
           p.priceM,
           fixtures,
-          p.formMultiplier ?? 1.0
+          formMultiplier
         );
       });
 
-      const starterSet = new Set<number>(
-        args.starterIds ?? args.players.map((p) => p.playerId)
-      );
+      // Build starter set: lineupData overrides starterIds overrides per-player isStarter
+      const starterSet = new Set<number>();
+      for (const p of args.players) {
+        let isStarter: boolean;
+        if (lineupOverride.has(p.playerId)) {
+          isStarter = lineupOverride.get(p.playerId)!;
+        } else if (args.starterIds) {
+          isStarter = args.starterIds.includes(p.playerId);
+        } else {
+          isStarter = p.isStarter ?? true;
+        }
+        if (isStarter) starterSet.add(p.playerId);
+      }
+
       const squadEV = computeSquadEV(playerEVs, starterSet);
 
       const chips = evaluateChips({
@@ -946,6 +1006,159 @@ server.registerTool(
           .join("\n");
 
       return result({ transfers: feasible, totalEvaluated: transfers.length }, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+
+// ----------------------------------------------------------------------------
+// 17. Get player availability (injury / suspension feed).
+// ----------------------------------------------------------------------------
+server.registerTool(
+  "get_player_availability",
+  {
+    title: "Get player availability (injuries & suspensions)",
+    description:
+      "Returns players with injury or suspension concerns, merging Sport5's own status " +
+      "flags with external data from API-Football (requires API_FOOTBALL_KEY env var). " +
+      "Results are cached for 6 hours. Use forceRefresh=true to bypass the cache. " +
+      "Sport5 flags always take precedence over external data.",
+    inputSchema: {
+      forceRefresh: z
+        .boolean()
+        .optional()
+        .describe("Ignore the 6-hour cache and re-fetch from all sources (default false)."),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  },
+  async (args) => {
+    try {
+      const raw = await s5get("/Players/GetTeamsAndPlayers");
+      const allPlayers = flattenMarket(raw).map(slimPlayer);
+      const { byId: nationRegistry } = buildNationRegistry(raw);
+
+      const { injuries, cachedAt, fromCache, apiKeyPresent } = await fetchAndCacheInjuries(
+        args.forceRefresh ?? false
+      );
+
+      const availMap = await buildAvailabilityMap(injuries, allPlayers, nationRegistry);
+
+      // Ensure Sport5-flagged unavailable players are always included
+      for (const p of allPlayers) {
+        if (!p.available && !availMap.has(p.id)) {
+          const status = p.expelled ? "suspended" as const : "injured" as const;
+          availMap.set(p.id, { playerId: p.id, playerNameHe: p.name, status, source: "sport5" });
+        }
+      }
+
+      const players = [...availMap.values()];
+      const injuredCount = players.filter((p) => p.status === "injured").length;
+      const suspendedCount = players.filter((p) => p.status === "suspended").length;
+      const doubtfulCount = players.filter((p) => p.status === "doubtful").length;
+
+      const structured = {
+        cachedAt,
+        fromCache,
+        apiKeyPresent,
+        totalUnavailable: players.length,
+        injuredCount,
+        suspendedCount,
+        doubtfulCount,
+        players,
+      };
+      const summary =
+        `${players.length} players with availability concerns (cached: ${fromCache}, API key: ${apiKeyPresent ? "yes" : "no — add API_FOOTBALL_KEY for external data"}).\n` +
+        `Injured: ${injuredCount} · Suspended: ${suspendedCount} · Doubtful: ${doubtfulCount}\n` +
+        players
+          .slice(0, 15)
+          .map(
+            (p) =>
+              `• [${p.status.toUpperCase()}] ${p.playerNameHe}${p.reason ? ` — ${p.reason}` : ""} (${p.source})`
+          )
+          .join("\n");
+
+      return result(structured, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+
+// ----------------------------------------------------------------------------
+// 18. Get lineup predictions (consensus from 3 scraped sources).
+// ----------------------------------------------------------------------------
+server.registerTool(
+  "get_lineup_predictions",
+  {
+    title: "Get predicted starting lineups",
+    description:
+      "Fetches predicted starting XIs from FotMob, RotoWire and 365scores in parallel, " +
+      "then builds a consensus: a player is listed as a predicted starter when they appear " +
+      "in ≥ 2 of 3 sources. Returns per-national-team lists of Sport5 player IDs. " +
+      "Results are cached for 2 hours. Lists unmatched player names (English → Hebrew " +
+      "mapping failed) so you can add manual overrides to player-name-overrides.json.",
+    inputSchema: {
+      matchDates: z
+        .array(z.string())
+        .optional()
+        .describe(
+          "Dates to fetch predictions for (YYYY-MM-DD). Defaults to the next 7 days of WC fixtures."
+        ),
+      forceRefresh: z
+        .boolean()
+        .optional()
+        .describe("Bypass the 2-hour cache (default false)."),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  },
+  async (args) => {
+    try {
+      // Resolve match dates: use args or pull from upcoming fixtures
+      let dates = args.matchDates ?? [];
+      if (dates.length === 0) {
+        const fixtureRes = await getFixtures({ when: "next", limit: 30 });
+        const seen = new Set<string>();
+        for (const f of fixtureRes.fixtures) {
+          if (f.date && !seen.has(f.date)) {
+            seen.add(f.date);
+            if (seen.size >= 7) break;
+          }
+        }
+        dates = [...seen];
+      }
+
+      const { lineups: consensusLineups, cachedAt, fromCache } =
+        await fetchAndCacheLineupPredictions(dates, args.forceRefresh ?? false);
+
+      const raw = await s5get("/Players/GetTeamsAndPlayers");
+      const allPlayers = flattenMarket(raw).map(slimPlayer);
+      const { byId: nationRegistry } = buildNationRegistry(raw);
+
+      const lineupEntries = await buildLineupMap(consensusLineups, allPlayers, nationRegistry);
+
+      const totalUnmatched = lineupEntries.reduce((s, t) => s + t.unmatchedNames.length, 0);
+      const structured = { cachedAt, fromCache, matchDates: dates, teams: lineupEntries, totalUnmatched };
+      const summary =
+        `Lineup predictions for ${lineupEntries.length} teams — dates: ${dates.join(", ")} (cached: ${fromCache}).\n` +
+        lineupEntries
+          .slice(0, 12)
+          .map((t) => {
+            const unmatched =
+              t.unmatchedNames.length
+                ? ` ⚠ unmatched: ${t.unmatchedNames.join(", ")}`
+                : "";
+            return (
+              `• ${t.teamNameEn}: ${t.predictedStarterIds.length} starters, ` +
+              `conf ${(t.confidence * 100).toFixed(0)}%${unmatched}`
+            );
+          })
+          .join("\n") +
+        (totalUnmatched > 0
+          ? `\n\nTip: add entries to player-name-overrides.json to fix unmatched names.`
+          : "");
+
+      return result(structured, summary);
     } catch (e) {
       return errorResult(e);
     }

@@ -84,3 +84,27 @@ export async function readSnapshot(fileOrLatest: string): Promise<any> {
   const raw = await fs.readFile(full, "utf8");
   return JSON.parse(raw);
 }
+
+/** Read a named JSON cache file, returning null if missing or older than ttlHours. */
+export async function readCacheFile<T>(name: string, ttlHours: number): Promise<T | null> {
+  const dir = await ensureDir();
+  const full = path.join(dir, name);
+  try {
+    const raw = await fs.readFile(full, "utf8");
+    const parsed = JSON.parse(raw) as { cachedAt?: string } & T;
+    if (parsed.cachedAt) {
+      const ageHours = (Date.now() - new Date(parsed.cachedAt).getTime()) / 3_600_000;
+      if (ageHours > ttlHours) return null;
+    }
+    return parsed as T;
+  } catch {
+    return null;
+  }
+}
+
+/** Write data to a named JSON cache file in the data directory. */
+export async function writeCacheFile<T>(name: string, data: T): Promise<void> {
+  const dir = await ensureDir();
+  const full = path.join(dir, name);
+  await fs.writeFile(full, JSON.stringify(data, null, 2), "utf8");
+}

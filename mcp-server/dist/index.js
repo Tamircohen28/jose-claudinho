@@ -3231,8 +3231,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path2) {
-      let input = path2;
+    function removeDotSegments(path3) {
+      let input = path3;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -3484,8 +3484,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path2, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path2 && path2 !== "/" ? path2 : void 0;
+        const [path3, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path3 && path3 !== "/" ? path3 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -6878,12 +6878,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs2, exportName) {
+    function addFormats(ajv, list, fs3, exportName) {
       var _a3;
       var _b;
       (_a3 = (_b = ajv.opts.code).formats) !== null && _a3 !== void 0 ? _a3 : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs2[f]);
+        ajv.addFormat(f, fs3[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -7250,8 +7250,8 @@ function getErrorMap() {
 
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path2, errorMaps, issueData } = params;
-  const fullPath = [...path2, ...issueData.path || []];
+  const { data, path: path3, errorMaps, issueData } = params;
+  const fullPath = [...path3, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -7366,11 +7366,11 @@ var errorUtil;
 
 // node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path2, key2) {
+  constructor(parent, value, path3, key2) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path2;
+    this._path = path3;
     this._key = key2;
   }
   get path() {
@@ -11290,10 +11290,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path2) {
-  if (!path2)
+function getElementAtPath(obj, path3) {
+  if (!path3)
     return obj;
-  return path2.reduce((acc, key2) => acc?.[key2], obj);
+  return path3.reduce((acc, key2) => acc?.[key2], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -11702,11 +11702,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path2, issues) {
+function prefixIssues(path3, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path2);
+    iss.path.unshift(path3);
     return iss;
   });
 }
@@ -11853,16 +11853,16 @@ function flattenError(error51, mapper = (issue2) => issue2.message) {
 }
 function formatError(error51, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error52, path2 = []) => {
+  const processError = (error52, path3 = []) => {
     for (const issue2 of error52.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path2, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path3, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path3, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path3, ...issue2.path]);
       } else {
-        const fullpath = [...path2, ...issue2.path];
+        const fullpath = [...path3, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -11889,17 +11889,17 @@ function formatError(error51, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error51, mapper = (issue2) => issue2.message) {
   const result2 = { errors: [] };
-  const processError = (error52, path2 = []) => {
+  const processError = (error52, path3 = []) => {
     var _a3, _b;
     for (const issue2 of error52.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path2, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path3, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path3, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path3, ...issue2.path]);
       } else {
-        const fullpath = [...path2, ...issue2.path];
+        const fullpath = [...path3, ...issue2.path];
         if (fullpath.length === 0) {
           result2.errors.push(mapper(issue2));
           continue;
@@ -11931,8 +11931,8 @@ function treeifyError(error51, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path2 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path2) {
+  const path3 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path3) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -25057,13 +25057,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path2 = ref.slice(1).split("/").filter(Boolean);
-  if (path2.length === 0) {
+  const path3 = ref.slice(1).split("/").filter(Boolean);
+  if (path3.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path2[0] === defsKey) {
-    const key2 = path2[1];
+  if (path3[0] === defsKey) {
+    const key2 = path3[1];
     if (!key2 || !ctx.defs[key2]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -30987,8 +30987,8 @@ function requireCookie(what) {
     );
   }
 }
-async function s5get(path2, params = {}) {
-  const url2 = new URL(BASE + path2);
+async function s5get(path3, params = {}) {
+  const url2 = new URL(BASE + path3);
   url2.searchParams.set("seasonId", seasonId());
   for (const [k, v] of Object.entries(params)) {
     if (v === void 0) continue;
@@ -31006,15 +31006,15 @@ async function s5get(path2, params = {}) {
   try {
     res = await fetch(url2, { headers });
   } catch (e) {
-    throw new Sport5Error(`Network error calling ${path2}: ${e?.message || e}`);
+    throw new Sport5Error(`Network error calling ${path3}: ${e?.message || e}`);
   }
   if (!res.ok) {
     const hint = res.status === 401 || res.status === 403 ? " (your SPORT5_COOKIE may be missing or expired \u2014 re-copy it from the browser)" : "";
-    throw new Sport5Error(`Sport5 API ${path2} returned ${res.status} ${res.statusText}${hint}`);
+    throw new Sport5Error(`Sport5 API ${path3} returned ${res.status} ${res.statusText}${hint}`);
   }
   const json2 = await res.json();
   if (json2 && json2.result === false) {
-    throw new Sport5Error(`Sport5 API ${path2} error: ${json2.error ?? "unknown error"}`);
+    throw new Sport5Error(`Sport5 API ${path3} error: ${json2.error ?? "unknown error"}`);
   }
   return json2.data;
 }
@@ -32135,6 +32135,26 @@ async function readSnapshot(fileOrLatest) {
   const raw = await fs.readFile(full, "utf8");
   return JSON.parse(raw);
 }
+async function readCacheFile(name, ttlHours) {
+  const dir = await ensureDir();
+  const full = path.join(dir, name);
+  try {
+    const raw = await fs.readFile(full, "utf8");
+    const parsed = JSON.parse(raw);
+    if (parsed.cachedAt) {
+      const ageHours = (Date.now() - new Date(parsed.cachedAt).getTime()) / 36e5;
+      if (ageHours > ttlHours) return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+async function writeCacheFile(name, data) {
+  const dir = await ensureDir();
+  const full = path.join(dir, name);
+  await fs.writeFile(full, JSON.stringify(data, null, 2), "utf8");
+}
 
 // src/nations.ts
 var HEBREW_ALIASES = {
@@ -32523,6 +32543,442 @@ async function getLeagueWatchlist(opts) {
   };
 }
 
+// src/injuryClient.ts
+var API_FOOTBALL_BASE = "https://v3.football.api-sports.io";
+var WC_LEAGUE_ID = 1;
+var WC_SEASON = 2026;
+var CACHE_FILE = "injury-cache.json";
+var CACHE_TTL_HOURS = 6;
+async function apifootballGet(endpointPath, apiKey) {
+  const url2 = `${API_FOOTBALL_BASE}${endpointPath}`;
+  const resp = await fetch(url2, {
+    headers: {
+      "x-rapidapi-key": apiKey,
+      "x-rapidapi-host": "v3.football.api-sports.io",
+      "Accept": "application/json"
+    },
+    signal: AbortSignal.timeout(15e3)
+  });
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => "");
+    throw new Error(`API-Football ${resp.status}: ${body}`);
+  }
+  return resp.json();
+}
+function parseStatus(type, reason) {
+  const t = type.toLowerCase();
+  const r = reason.toLowerCase();
+  if (t.includes("suspend") || r.includes("suspend") || r.includes("red card")) return "suspended";
+  if (t.includes("doubt") || r.includes("doubt") || r.includes("knock") || r.includes("minor")) {
+    return "doubtful";
+  }
+  return "injured";
+}
+async function fetchAndCacheInjuries(forceRefresh = false) {
+  const apiKey = envOpt("API_FOOTBALL_KEY");
+  if (!forceRefresh) {
+    const cached2 = await readCacheFile(CACHE_FILE, CACHE_TTL_HOURS);
+    if (cached2) {
+      return {
+        injuries: cached2.injuries,
+        cachedAt: cached2.cachedAt,
+        fromCache: true,
+        apiKeyPresent: cached2.apiKeyPresent
+      };
+    }
+  }
+  const injuries = [];
+  const apiKeyPresent = apiKey != null;
+  if (apiKey) {
+    try {
+      const data = await apifootballGet(
+        `/injuries?league=${WC_LEAGUE_ID}&season=${WC_SEASON}`,
+        apiKey
+      );
+      for (const item of data.response ?? []) {
+        const player = item.player;
+        const team = item.team;
+        if (!player?.name || !team?.name) continue;
+        injuries.push({
+          playerNameEn: String(player.name),
+          teamNameEn: String(team.name),
+          status: parseStatus(String(item.type ?? ""), String(item.reason ?? "")),
+          reason: item.reason ?? item.type ?? void 0
+        });
+      }
+      console.error(`[injuryClient] Fetched ${injuries.length} injuries from API-Football.`);
+    } catch (err) {
+      console.error("[injuryClient] API-Football fetch failed:", err);
+    }
+  } else {
+    console.error("[injuryClient] No API_FOOTBALL_KEY \u2014 external injury data skipped.");
+  }
+  const cachedAt = (/* @__PURE__ */ new Date()).toISOString();
+  try {
+    await writeCacheFile(CACHE_FILE, { cachedAt, injuries, apiKeyPresent });
+  } catch {
+  }
+  return { injuries, cachedAt, fromCache: false, apiKeyPresent };
+}
+
+// src/lineupScraper.ts
+var CACHE_FILE2 = "lineup-cache.json";
+var CACHE_TTL_HOURS2 = 2;
+var BROWSER_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Accept-Language": "en-US,en;q=0.9"
+};
+async function fetchFotMobLineups(yyyymmddDates) {
+  const results = [];
+  for (const date5 of yyyymmddDates) {
+    try {
+      const url2 = `https://www.fotmob.com/api/matches?date=${date5}`;
+      const resp = await fetch(url2, {
+        headers: { ...BROWSER_HEADERS, "Accept": "application/json", "Referer": "https://www.fotmob.com/" },
+        signal: AbortSignal.timeout(12e3)
+      });
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      for (const league of data.leagues ?? []) {
+        const leagueName = String(league.name ?? "").toLowerCase();
+        if (!leagueName.includes("world cup")) continue;
+        for (const match of league.matches ?? []) {
+          for (const side of [match.home, match.away]) {
+            if (!side) continue;
+            const teamName = String(side.name ?? side.longName ?? "").trim();
+            if (!teamName) continue;
+            const playerLists = [
+              side.lineup?.players,
+              side.players,
+              match.lineups?.[String(side.id)]?.players
+            ].filter(Array.isArray);
+            for (const players of playerLists) {
+              const starters = players.filter((p) => p.positionId !== "Sub" && p.positionId !== "Bench" && !p.isSub).map((p) => String(p.name ?? p.playerName ?? p.shortName ?? "").trim()).filter(Boolean);
+              if (starters.length >= 10) {
+                results.push({ teamNameEn: teamName, predictedStarters: starters.slice(0, 11), source: "fotmob" });
+                break;
+              }
+            }
+          }
+        }
+      }
+    } catch {
+    }
+  }
+  return results;
+}
+function parseRotoWireHtml(html) {
+  const results = [];
+  const tagPattern = /<[^>]+>/g;
+  const teamBlockPattern = /<div[^>]*class="[^"]*lineup\b[^"]*"[^>]*>([\s\S]*?)(?=<div[^>]*class="[^"]*lineup\b|$)/gi;
+  const teamNamePattern = /class="[^"]*lineup__team-name[^"]*"[^>]*>([\s\S]*?)<\/\w+>/i;
+  const playerNamePattern = /class="[^"]*lineup__player-name[^"]*"[^>]*>([\s\S]*?)<\/\w+>/gi;
+  let block;
+  while ((block = teamBlockPattern.exec(html)) !== null) {
+    const content = block[1] ?? "";
+    const nameMatch = teamNamePattern.exec(content);
+    if (!nameMatch) continue;
+    const teamName = (nameMatch[1] ?? "").replace(tagPattern, "").trim();
+    if (!teamName) continue;
+    const starters = [];
+    let pm;
+    const localPlayerPattern = new RegExp(playerNamePattern.source, "gi");
+    while ((pm = localPlayerPattern.exec(content)) !== null) {
+      const name = (pm[1] ?? "").replace(tagPattern, "").trim();
+      if (name && starters.length < 11) starters.push(name);
+    }
+    if (starters.length >= 10) {
+      results.push({ teamNameEn: teamName, predictedStarters: starters, source: "rotowire" });
+    }
+  }
+  return results;
+}
+async function fetchRotoWireLineups() {
+  try {
+    const url2 = "https://www.rotowire.com/soccer/lineups.php?league=WOC";
+    const resp = await fetch(url2, {
+      headers: { ...BROWSER_HEADERS, "Accept": "text/html,application/xhtml+xml" },
+      signal: AbortSignal.timeout(12e3)
+    });
+    if (!resp.ok) return [];
+    const html = await resp.text();
+    return parseRotoWireHtml(html);
+  } catch {
+    return [];
+  }
+}
+async function fetch365ScoresLineups(yyyymmddDates) {
+  const results = [];
+  for (const date5 of yyyymmddDates) {
+    try {
+      const y = date5.slice(0, 4);
+      const m = date5.slice(4, 6);
+      const d = date5.slice(6, 8);
+      const dateFmt = `${d}/${m}/${y}`;
+      const url2 = `https://webws.365scores.com/web/games/?appTypeId=5&langId=1&startDate=${dateFmt}&endDate=${dateFmt}&competitions=44&withLineups=true`;
+      const resp = await fetch(url2, {
+        headers: {
+          ...BROWSER_HEADERS,
+          "Accept": "application/json",
+          "Referer": "https://www.365scores.com/soccer/world-cup/",
+          "Origin": "https://www.365scores.com"
+        },
+        signal: AbortSignal.timeout(12e3)
+      });
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      for (const game of data.games ?? []) {
+        for (const side of [game.homeCompetitor, game.awayCompetitor]) {
+          if (!side?.name) continue;
+          const teamName = String(side.name).trim();
+          const athletes = side.lineups?.athletes ?? side.formations?.[0]?.athletes ?? [];
+          const starters = athletes.filter((a) => !a.isSub && (a.status?.id === 1 || a.lineupStatus?.id === 1 || a.status?.id == null)).map((a) => String(a.name ?? a.shortName ?? a.athlete?.name ?? "").trim()).filter(Boolean);
+          if (starters.length >= 10) {
+            results.push({ teamNameEn: teamName, predictedStarters: starters.slice(0, 11), source: "365scores" });
+          }
+        }
+      }
+    } catch {
+    }
+  }
+  return results;
+}
+function normalizePlayerName(name) {
+  return name.toLowerCase().replace(/[^a-z]/g, "");
+}
+function buildConsensusLineups(allSources, minSources = 2) {
+  const byTeam = /* @__PURE__ */ new Map();
+  for (const entry of allSources) {
+    const teamKey = entry.teamNameEn.toLowerCase().trim();
+    if (!byTeam.has(teamKey)) byTeam.set(teamKey, /* @__PURE__ */ new Map());
+    const sourceMap = byTeam.get(teamKey);
+    if (!sourceMap.has(entry.source)) sourceMap.set(entry.source, []);
+    sourceMap.get(entry.source).push(entry);
+  }
+  const consensus = [];
+  for (const [teamKey, sourceMap] of byTeam) {
+    const sourcesCount = sourceMap.size;
+    const allEntries = [...sourceMap.values()].flat();
+    const teamNameEn = allEntries[0]?.teamNameEn ?? teamKey;
+    const playerCounts = /* @__PURE__ */ new Map();
+    for (const entry of allEntries) {
+      for (const name of entry.predictedStarters) {
+        const norm = normalizePlayerName(name);
+        if (!norm) continue;
+        const existing = playerCounts.get(norm);
+        if (existing) {
+          existing.count++;
+        } else {
+          playerCounts.set(norm, { rawName: name, count: 1 });
+        }
+      }
+    }
+    const effectiveMin = Math.min(minSources, sourcesCount);
+    const starters = [...playerCounts.values()].filter((p) => p.count >= effectiveMin).sort((a, b) => b.count - a.count).slice(0, 11).map((p) => p.rawName);
+    const matchingEntries = [...playerCounts.values()].filter((p) => p.count >= effectiveMin);
+    const avgConfidence = matchingEntries.length > 0 ? matchingEntries.reduce((s, p) => s + p.count / sourcesCount, 0) / matchingEntries.length : 0;
+    consensus.push({
+      teamNameEn,
+      consensusStarters: starters,
+      confidence: Math.min(1, avgConfidence),
+      sourcesCount
+    });
+  }
+  return consensus;
+}
+async function fetchAndCacheLineupPredictions(matchDates, forceRefresh = false) {
+  if (!forceRefresh) {
+    const cached2 = await readCacheFile(CACHE_FILE2, CACHE_TTL_HOURS2);
+    if (cached2) return { lineups: cached2.lineups, cachedAt: cached2.cachedAt, fromCache: true };
+  }
+  const compactDates = matchDates.map((d) => d.replace(/-/g, ""));
+  const [fotmobResult, rotoWireResult, scoresResult] = await Promise.allSettled([
+    fetchFotMobLineups(compactDates),
+    fetchRotoWireLineups(),
+    fetch365ScoresLineups(compactDates)
+  ]);
+  const fotmobData = fotmobResult.status === "fulfilled" ? fotmobResult.value : [];
+  const rotoWireData = rotoWireResult.status === "fulfilled" ? rotoWireResult.value : [];
+  const scoresData = scoresResult.status === "fulfilled" ? scoresResult.value : [];
+  console.error(
+    `[lineupScraper] fotmob=${fotmobData.length} teams, rotowire=${rotoWireData.length} teams, 365scores=${scoresData.length} teams`
+  );
+  const allLineups = [...fotmobData, ...rotoWireData, ...scoresData];
+  const lineups = buildConsensusLineups(allLineups);
+  const cachedAt = (/* @__PURE__ */ new Date()).toISOString();
+  try {
+    await writeCacheFile(CACHE_FILE2, { cachedAt, lineups, matchDates });
+  } catch {
+  }
+  return { lineups, cachedAt, fromCache: false };
+}
+
+// src/playerMapping.ts
+import { promises as fs2 } from "node:fs";
+import path2 from "node:path";
+async function loadOverrides() {
+  const file2 = path2.join(dataDir(), "player-name-overrides.json");
+  try {
+    const raw = await fs2.readFile(file2, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+function levenshtein(a, b) {
+  const m = a.length;
+  const n = b.length;
+  const dp = Array.from(
+    { length: m + 1 },
+    (_, i) => Array.from({ length: n + 1 }, (_2, j) => i === 0 ? j : j === 0 ? i : 0)
+  );
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+var HE_TO_LATIN = {
+  \u05D0: "",
+  \u05D1: "b",
+  \u05D2: "g",
+  \u05D3: "d",
+  \u05D4: "h",
+  \u05D5: "v",
+  \u05D6: "z",
+  \u05D7: "kh",
+  \u05D8: "t",
+  \u05D9: "y",
+  \u05DB: "k",
+  \u05DA: "k",
+  \u05DC: "l",
+  \u05DE: "m",
+  \u05DD: "m",
+  \u05E0: "n",
+  \u05DF: "n",
+  \u05E1: "s",
+  \u05E2: "",
+  \u05E4: "p",
+  \u05E3: "f",
+  \u05E6: "ts",
+  \u05E5: "ts",
+  \u05E7: "k",
+  \u05E8: "r",
+  \u05E9: "sh",
+  \u05EA: "t",
+  "\u05F3": "",
+  // geresh
+  "\u05F4": ""
+  // gershayim
+};
+function transliterateHe(s) {
+  return s.split("").map((c) => HE_TO_LATIN[c] ?? "").join("").toLowerCase().replace(/[^a-z]/g, "");
+}
+function lastToken(name) {
+  const parts = name.trim().split(/\s+/);
+  return (parts[parts.length - 1] ?? name).toLowerCase().replace(/[^a-z]/g, "");
+}
+function buildEnglishTeamNameToNationId(nationRegistry) {
+  const map2 = /* @__PURE__ */ new Map();
+  for (const entry of Object.values(nationRegistry)) {
+    for (const enName of entry.sportsDbNames) {
+      map2.set(enName.toLowerCase(), entry.nationTeamId);
+    }
+  }
+  return map2;
+}
+function resolveToSport5Id(nameEn, teamPlayers, overrideKey, overrides) {
+  const override = overrides[overrideKey];
+  if (override != null) return override;
+  const targetLast = lastToken(nameEn);
+  if (!targetLast) return null;
+  let bestId = null;
+  let bestDist = Infinity;
+  for (const p of teamPlayers) {
+    const heTranslit = transliterateHe(p.name);
+    const suffixLen = Math.min(heTranslit.length, targetLast.length + 3);
+    const heSuffix = heTranslit.slice(heTranslit.length - suffixLen);
+    const dist = Math.min(
+      levenshtein(targetLast, heTranslit),
+      levenshtein(targetLast, heSuffix)
+    );
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestId = p.id;
+    }
+  }
+  const tolerance = Math.max(2, Math.floor(targetLast.length * 0.35));
+  return bestDist <= tolerance ? bestId : null;
+}
+async function buildAvailabilityMap(externalInjuries, allPlayers, nationRegistry) {
+  const overrides = await loadOverrides();
+  const teamNameToId = buildEnglishTeamNameToNationId(nationRegistry);
+  const map2 = /* @__PURE__ */ new Map();
+  for (const p of allPlayers) {
+    if (!p.available) {
+      const status = p.expelled ? "suspended" : "injured";
+      map2.set(p.id, { playerId: p.id, playerNameHe: p.name, status, source: "sport5" });
+    }
+  }
+  const playersByTeam = /* @__PURE__ */ new Map();
+  for (const p of allPlayers) {
+    if (!playersByTeam.has(p.nationTeamId)) playersByTeam.set(p.nationTeamId, []);
+    playersByTeam.get(p.nationTeamId).push(p);
+  }
+  for (const ext of externalInjuries) {
+    const nationId = teamNameToId.get(ext.teamNameEn.toLowerCase());
+    if (nationId == null) continue;
+    const teamPlayers = playersByTeam.get(nationId) ?? [];
+    const overrideKey = `${ext.teamNameEn} / ${ext.playerNameEn}`;
+    const sport5Id = resolveToSport5Id(ext.playerNameEn, teamPlayers, overrideKey, overrides);
+    if (sport5Id == null) continue;
+    if (map2.get(sport5Id)?.source === "sport5") continue;
+    map2.set(sport5Id, {
+      playerId: sport5Id,
+      playerNameHe: teamPlayers.find((p) => p.id === sport5Id)?.name ?? ext.playerNameEn,
+      status: ext.status,
+      reason: ext.reason,
+      source: "external"
+    });
+  }
+  return map2;
+}
+async function buildLineupMap(consensus, allPlayers, nationRegistry) {
+  const overrides = await loadOverrides();
+  const teamNameToId = buildEnglishTeamNameToNationId(nationRegistry);
+  const playersByTeam = /* @__PURE__ */ new Map();
+  for (const p of allPlayers) {
+    if (!playersByTeam.has(p.nationTeamId)) playersByTeam.set(p.nationTeamId, []);
+    playersByTeam.get(p.nationTeamId).push(p);
+  }
+  const entries = [];
+  for (const teamLineup of consensus) {
+    const nationId = teamNameToId.get(teamLineup.teamNameEn.toLowerCase());
+    if (nationId == null) continue;
+    const teamPlayers = playersByTeam.get(nationId) ?? [];
+    const predictedStarterIds = [];
+    const unmatchedNames = [];
+    for (const playerNameEn of teamLineup.consensusStarters) {
+      const overrideKey = `${teamLineup.teamNameEn} / ${playerNameEn}`;
+      const sport5Id = resolveToSport5Id(playerNameEn, teamPlayers, overrideKey, overrides);
+      if (sport5Id != null) {
+        predictedStarterIds.push(sport5Id);
+      } else {
+        unmatchedNames.push(playerNameEn);
+      }
+    }
+    entries.push({
+      nationTeamId: nationId,
+      teamNameEn: teamLineup.teamNameEn,
+      predictedStarterIds,
+      unmatchedNames,
+      confidence: teamLineup.confidence
+    });
+  }
+  return entries;
+}
+
 // src/index.ts
 var server = new McpServer({
   name: "fantasy-wc",
@@ -32769,11 +33225,11 @@ server.registerTool(
         leagueId: args.leagueId ?? null,
         isPerRound: args.isPerRound ?? true
       });
-      const { file: file2, path: path2 } = await writeSnapshot(snapshot);
+      const { file: file2, path: path3 } = await writeSnapshot(snapshot);
       const captured = snapshot.squads.filter((s) => !s.error).length;
       const structured = {
         file: file2,
-        path: path2,
+        path: path3,
         topN,
         roundId: snapshot.roundId,
         squadsCaptured: captured,
@@ -32965,28 +33421,64 @@ server.registerTool(
       starterIds: external_exports.array(external_exports.number().int()).optional().describe("Player IDs that are in the starting XI (for squad EV split). Defaults to all players."),
       chipsUsed: external_exports.array(external_exports.string()).optional().describe("Chip keys already used this season: triple_captain, five_subs, double_captains, all_squad_points"),
       roundsRemaining: external_exports.number().int().min(1).max(6).optional().describe("Rounds remaining in the tournament (default 3)"),
-      stage: external_exports.enum(["group", "r32", "r16", "qf", "sf", "final"]).optional().describe("Current tournament stage (default group)")
+      stage: external_exports.enum(["group", "r32", "r16", "qf", "sf", "final"]).optional().describe("Current tournament stage (default group)"),
+      availabilityData: external_exports.array(
+        external_exports.object({
+          playerId: external_exports.number().int(),
+          status: external_exports.enum(["injured", "suspended", "doubtful", "fit"])
+        })
+      ).optional().describe(
+        "Per-player availability from get_player_availability. injured/suspended \u2192 formMultiplier=0; doubtful \u2192 formMultiplier=0.4; fit \u2192 1.0 (default). Overrides any per-player formMultiplier already in the players array."
+      ),
+      lineupData: external_exports.array(
+        external_exports.object({
+          playerId: external_exports.number().int(),
+          predictedStarter: external_exports.boolean(),
+          confidence: external_exports.number().min(0).max(1).optional()
+        })
+      ).optional().describe(
+        "Per-player lineup predictions from get_lineup_predictions. Overrides per-player isStarter and the starterIds list."
+      )
     },
     annotations: { readOnlyHint: true }
   },
   async (args) => {
     try {
+      const availOverride = /* @__PURE__ */ new Map();
+      for (const a of args.availabilityData ?? []) {
+        const fm = a.status === "injured" || a.status === "suspended" ? 0 : a.status === "doubtful" ? 0.4 : 1;
+        availOverride.set(a.playerId, fm);
+      }
+      const lineupOverride = /* @__PURE__ */ new Map();
+      for (const l of args.lineupData ?? []) {
+        lineupOverride.set(l.playerId, l.predictedStarter);
+      }
       const playerEVs = args.players.map((p) => {
         const fixtures = (p.fixtures ?? []).map(
           (f) => buildFixtureDifficulty(f.tier, f.opponent, f.fixtureId)
         );
+        const formMultiplier = availOverride.has(p.playerId) ? availOverride.get(p.playerId) : p.formMultiplier ?? 1;
         return computePlayerEV(
           p.playerId,
           p.playerName,
           p.position,
           p.priceM,
           fixtures,
-          p.formMultiplier ?? 1
+          formMultiplier
         );
       });
-      const starterSet = new Set(
-        args.starterIds ?? args.players.map((p) => p.playerId)
-      );
+      const starterSet = /* @__PURE__ */ new Set();
+      for (const p of args.players) {
+        let isStarter;
+        if (lineupOverride.has(p.playerId)) {
+          isStarter = lineupOverride.get(p.playerId);
+        } else if (args.starterIds) {
+          isStarter = args.starterIds.includes(p.playerId);
+        } else {
+          isStarter = p.isStarter ?? true;
+        }
+        if (isStarter) starterSet.add(p.playerId);
+      }
       const squadEV = computeSquadEV(playerEVs, starterSet);
       const chips = evaluateChips({
         squadEV,
@@ -33147,6 +33639,103 @@ server.registerTool(
         (t, i) => `${i + 1}. OUT ${t.playerOutName} \u2192 IN ${t.playerInName} | +${t.evGain.toFixed(1)} EV | budget \u0394${t.budgetDelta > 0 ? "+" : ""}${t.budgetDelta.toFixed(1)}M`
       ).join("\n");
       return result({ transfers: feasible, totalEvaluated: transfers.length }, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+server.registerTool(
+  "get_player_availability",
+  {
+    title: "Get player availability (injuries & suspensions)",
+    description: "Returns players with injury or suspension concerns, merging Sport5's own status flags with external data from API-Football (requires API_FOOTBALL_KEY env var). Results are cached for 6 hours. Use forceRefresh=true to bypass the cache. Sport5 flags always take precedence over external data.",
+    inputSchema: {
+      forceRefresh: external_exports.boolean().optional().describe("Ignore the 6-hour cache and re-fetch from all sources (default false).")
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true }
+  },
+  async (args) => {
+    try {
+      const raw = await s5get("/Players/GetTeamsAndPlayers");
+      const allPlayers = flattenMarket(raw).map(slimPlayer);
+      const { byId: nationRegistry } = buildNationRegistry(raw);
+      const { injuries, cachedAt, fromCache, apiKeyPresent } = await fetchAndCacheInjuries(
+        args.forceRefresh ?? false
+      );
+      const availMap = await buildAvailabilityMap(injuries, allPlayers, nationRegistry);
+      for (const p of allPlayers) {
+        if (!p.available && !availMap.has(p.id)) {
+          const status = p.expelled ? "suspended" : "injured";
+          availMap.set(p.id, { playerId: p.id, playerNameHe: p.name, status, source: "sport5" });
+        }
+      }
+      const players = [...availMap.values()];
+      const injuredCount = players.filter((p) => p.status === "injured").length;
+      const suspendedCount = players.filter((p) => p.status === "suspended").length;
+      const doubtfulCount = players.filter((p) => p.status === "doubtful").length;
+      const structured = {
+        cachedAt,
+        fromCache,
+        apiKeyPresent,
+        totalUnavailable: players.length,
+        injuredCount,
+        suspendedCount,
+        doubtfulCount,
+        players
+      };
+      const summary = `${players.length} players with availability concerns (cached: ${fromCache}, API key: ${apiKeyPresent ? "yes" : "no \u2014 add API_FOOTBALL_KEY for external data"}).
+Injured: ${injuredCount} \xB7 Suspended: ${suspendedCount} \xB7 Doubtful: ${doubtfulCount}
+` + players.slice(0, 15).map(
+        (p) => `\u2022 [${p.status.toUpperCase()}] ${p.playerNameHe}${p.reason ? ` \u2014 ${p.reason}` : ""} (${p.source})`
+      ).join("\n");
+      return result(structured, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+server.registerTool(
+  "get_lineup_predictions",
+  {
+    title: "Get predicted starting lineups",
+    description: "Fetches predicted starting XIs from FotMob, RotoWire and 365scores in parallel, then builds a consensus: a player is listed as a predicted starter when they appear in \u2265 2 of 3 sources. Returns per-national-team lists of Sport5 player IDs. Results are cached for 2 hours. Lists unmatched player names (English \u2192 Hebrew mapping failed) so you can add manual overrides to player-name-overrides.json.",
+    inputSchema: {
+      matchDates: external_exports.array(external_exports.string()).optional().describe(
+        "Dates to fetch predictions for (YYYY-MM-DD). Defaults to the next 7 days of WC fixtures."
+      ),
+      forceRefresh: external_exports.boolean().optional().describe("Bypass the 2-hour cache (default false).")
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true }
+  },
+  async (args) => {
+    try {
+      let dates = args.matchDates ?? [];
+      if (dates.length === 0) {
+        const fixtureRes = await getFixtures({ when: "next", limit: 30 });
+        const seen = /* @__PURE__ */ new Set();
+        for (const f of fixtureRes.fixtures) {
+          if (f.date && !seen.has(f.date)) {
+            seen.add(f.date);
+            if (seen.size >= 7) break;
+          }
+        }
+        dates = [...seen];
+      }
+      const { lineups: consensusLineups, cachedAt, fromCache } = await fetchAndCacheLineupPredictions(dates, args.forceRefresh ?? false);
+      const raw = await s5get("/Players/GetTeamsAndPlayers");
+      const allPlayers = flattenMarket(raw).map(slimPlayer);
+      const { byId: nationRegistry } = buildNationRegistry(raw);
+      const lineupEntries = await buildLineupMap(consensusLineups, allPlayers, nationRegistry);
+      const totalUnmatched = lineupEntries.reduce((s, t) => s + t.unmatchedNames.length, 0);
+      const structured = { cachedAt, fromCache, matchDates: dates, teams: lineupEntries, totalUnmatched };
+      const summary = `Lineup predictions for ${lineupEntries.length} teams \u2014 dates: ${dates.join(", ")} (cached: ${fromCache}).
+` + lineupEntries.slice(0, 12).map((t) => {
+        const unmatched = t.unmatchedNames.length ? ` \u26A0 unmatched: ${t.unmatchedNames.join(", ")}` : "";
+        return `\u2022 ${t.teamNameEn}: ${t.predictedStarterIds.length} starters, conf ${(t.confidence * 100).toFixed(0)}%${unmatched}`;
+      }).join("\n") + (totalUnmatched > 0 ? `
+
+Tip: add entries to player-name-overrides.json to fix unmatched names.` : "");
+      return result(structured, summary);
     } catch (e) {
       return errorResult(e);
     }

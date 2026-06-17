@@ -4,7 +4,7 @@ description: >
   Produces the weekly Sport5 Fantasy WC 2026 plan — transfers, captain, lineup, chips —
   under official rules. Use when the user asks for squad advice, transfers, captain pick,
   lineup help, or invokes /squad-advice. Parses optional stage and strategy goals.
-version: 1.3.0
+version: 1.4.0
 user-invocable: false
 disable-model-invocation: true
 ---
@@ -20,7 +20,8 @@ The `fantasy-wc` MCP server provides all data. See `../shared/references/mcp-too
 for host-specific tool name prefixes. Core tools for this skill:
 `sport5_list_players`, `sport5_get_my_team`, `sport5_get_user_team`,
 `sport5_get_my_leagues`, `sport5_get_league_table`, `worldcup_fixtures`,
-`snapshot_top_teams`, `analyze_ownership`, `list_snapshots`, `get_game_rules`.
+`snapshot_top_teams`, `analyze_ownership`, `list_snapshots`, `get_game_rules`,
+`get_player_availability`, `get_lineup_predictions`, `compute_squad_ev`.
 
 **Read-and-recommend only.** The MCP cannot make changes — present the moves and
 the user applies them in the app at https://fantasywc.sport5.co.il.
@@ -46,6 +47,7 @@ See `../shared/references/error-handling.md` for the full error table. Key cases
 | Snapshot failure | Continue with market + fixtures; state "ownership confidence reduced — no snapshot". |
 | Transfer window closed | Skip steps 6–7. Prominently banner WINDOW CLOSED at the top. |
 | Player name mismatch (Hebrew vs English) | Use `../shared/references/hebrew-labels.md` + `nationNameHe` field. Never skip a player due to name mismatch alone. |
+| Availability/lineup fetch failure | Log the failure, continue without external signals, note "external availability data unavailable" in Watch-outs. |
 
 ## The 10-step weekly procedure
 
@@ -122,11 +124,40 @@ IN player's affordability.
 
 ---
 
+### Step 2.5 — Enrich with real-time availability & lineup predictions
+
+Call `get_player_availability` and `get_lineup_predictions` in parallel (both
+use a local cache — the second call of the session is near-instant).
+
+**Build two lookup maps** keyed by Sport5 player ID, and carry them through
+every subsequent step:
+
+```
+availabilityMap: playerId → { status: 'injured'|'suspended'|'doubtful'|'fit', reason?, source }
+lineupMap:       playerId → { predictedStarter: boolean, confidence: 0–1 }
+```
+
+**Populating availabilityMap** from `get_player_availability` response:
+- Each entry in `response.players` maps directly: `playerId → { status, reason, source }`
+- Players absent from the response AND with Sport5 `available: true` → treat as `fit`
+
+**Populating lineupMap** from `get_lineup_predictions` response:
+- For each team in `response.teams`, every id in `predictedStarterIds` maps to `predictedStarter: true`
+- Players from that team NOT in `predictedStarterIds` map to `predictedStarter: false`
+- Players listed in `unmatchedNames` for a team → English→Hebrew name-matching failed;
+  treat lineup data as **unknown** for those players (don't assume starter or non-starter)
+
+**Handle missing API key:** if `response.apiKeyPresent === false`, the availability data
+is Sport5-only (no external injury feed). Note in Watch-outs:
+> "External injury data unavailable — add API_FOOTBALL_KEY to the MCP server environment for enhanced availability checking."
+
+---
+
 ### Step 3 — Audit availability
 
-For every player in the squad, check:
+For every player in the squad, check all four signals:
 
-1. **Status flags:** `injured`, `expelled`, `missing` — these players score 0 and
+1. **Sport5 status flags:** `injured`, `expelled`, `missing` — these players score 0 and
    cannot play. They are priority sell candidates.
 2. **National team elimination:** cross-check each player's nation against
    `worldcup_fixtures` (when="past"). A nation is eliminated when it has no
@@ -134,11 +165,18 @@ For every player in the squad, check:
    require the user to transfer them out.
 3. **Bench cover gap:** if a starter is flagged unavailable and the bench has no
    valid same-position cover, the gap doubles in urgency — must fix.
+4. **External availability (from Step 2.5):**
+   - `status = 'injured'` or `'suspended'` → treat identically to a Sport5 unavailable
+     flag; add to priority sells. These players should not start.
+   - `status = 'doubtful'` → flag as risky. Bench-only until status clears. Add to
+     Watch-outs. Don't start a doubtful player when a fit alternative exists.
+   - Players absent from `availabilityMap` with Sport5 `available: true` → treat as fit.
 
 Produce an **availability summary** (keep internal, feeds steps 6 and 8):
 ```
-Unavailable starters: [name, position, reason]
-Bench coverage gaps: [position] (no bench cover for flagged starter)
+Unavailable starters (confirmed — Sport5 + external): [name, position, reason, source]
+Doubtful starters (bench-only risk): [name, position, reason]
+Bench coverage gaps: [position] (no valid same-position cover)
 Priority sells: [name (reason)]
 ```
 
@@ -179,9 +217,15 @@ Call `analyze_ownership` (snapshot="latest"). Extract:
 - **Best points-per-million** — value targets for transfers in
 - **Differentials** — owned by <15% of top teams, with high pts or good fixture
 
-Build an internal shortlist:
+Build an internal shortlist, then **filter it using Step 2.5 data:**
+- Remove any candidate whose `availabilityMap` status is `'injured'` or `'suspended'` —
+  injured players have zero EV and should never appear as transfer targets.
+- Mark any candidate with status `'doubtful'` with a ⚠ marker in the shortlist.
+- Where `lineupMap` shows a candidate as `predictedStarter: false`, reduce their
+  expected minutes confidence — note this in the shortlist.
+
 ```
-[position] Template: <name> (<own>% owned, <price>M, <pts> pts)
+[position] Template: <name> (<own>% owned, <price>M, <pts> pts)  [⚠ DOUBTFUL if applicable]
 [position] Value:    <name> (<pts/M> pts/M, <price>M, <fixture>)
 [position] Diff:     <name> (<own>% owned, <pts> pts, <fixture>)
 ```
@@ -204,9 +248,13 @@ For each proposed transfer OUT → IN:
    <= maxPlayersPerNation`.
 4. **Position match:** OUT and IN are the same position (GK, DEF, MID, FWD).
 5. **Expected value:** IN has better upcoming fixture + higher pts or pts/M than OUT.
+6. **Availability gate (from Step 2.5):** Skip any candidate IN player whose
+   `availabilityMap` status is `'injured'` or `'suspended'` — they contribute zero EV.
+   For candidates with status `'doubtful'`, include them but annotate with
+   ⚠ DOUBTFUL and note the risk explicitly in the transfer rationale.
 
 Prioritise transfers in this order:
-1. Unavailable starters (injured / expelled / eliminated) — must fix.
+1. Unavailable starters (injured / expelled / suspended / eliminated) — must fix.
 2. Bench cover gaps that leave a position undefended.
 3. Value upgrades: swap low pts/M players for high pts/M with good fixtures.
 4. Differential plays: if the user's goal is to climb the overall table.
@@ -230,15 +278,22 @@ promoted only if the captain does not play at all — not for a bad game.
 
 **Selection criteria (in priority order):**
 
-1. Must be nailed-on to start and play ≥60 minutes. Rotation-risk players
-   should not be captained even if they have the highest ceiling.
-2. Best upcoming fixture (from step 4 ranking).
-3. Highest recent form (season_points / last few rounds from market data).
-4. Position scoring edge: FWDs and attacking MIDs have the highest ceiling
+1. **Availability gate (from Step 2.5):** Must NOT appear in `availabilityMap`
+   as `'injured'`, `'suspended'`, or `'doubtful'`. A doubtful captain is a
+   liability — if they don't play, vice takes over but only at ×2, not ×1.
+2. **Lineup gate (from Step 2.5):** If `lineupMap` data is available for their
+   national team, must have `predictedStarter: true`. A non-predicted starter
+   risks missing the 60-minute threshold entirely. If lineup data is unavailable
+   for their team, note this uncertainty explicitly.
+3. Must be nailed-on to play ≥60 minutes. Rotation-risk players should not be
+   captained even if they have the highest ceiling.
+4. Best upcoming fixture (from step 4 ranking).
+5. Highest recent form (season_points / last few rounds from market data).
+6. Position scoring edge: FWDs and attacking MIDs have the highest ceiling
    (goals × multiplier). GKs and DEFs can captain if they face a weak attack
    and clean sheets are likely.
-5. Ownership consensus: check `analyze_ownership` top captains. If the #1
-   consensus captain satisfies criteria 1–4, follow it — captaining the template
+7. Ownership consensus: check `analyze_ownership` top captains. If the #1
+   consensus captain satisfies criteria 1–6, follow it — captaining the template
    avoids falling behind if that player hauls. Only differentiate if:
    - The user is chasing in a private league and needs variance, OR
    - An equally strong player is owned by <30% of top teams with the same ceiling.
@@ -263,14 +318,31 @@ State the captain and vice explicitly with the one-line reason.
 **Selection logic:**
 1. Start the 11 players with the best expected output this round (fixture ×
    form × minutes confidence).
-2. Bench the 4 players least likely to score: backup GK, weakest fixtures,
-   lowest pts/M, rotation risks.
-3. **Bench slot assignment** — put the most likely non-starters (rotation
+2. **Availability constraints (from Step 2.5):**
+   - Players with `availabilityMap` status `'injured'` or `'suspended'` → bench
+     or transfer out; **never in the starting XI**.
+   - Players with status `'doubtful'` → bench unless no fit positional alternative
+     exists. If you must start a doubtful player, flag it explicitly in Watch-outs.
+   - Players with `lineupMap` `predictedStarter: false` for their national team →
+     bench them; note this explicitly (e.g., "Benched — predicted non-starter for Brazil").
+3. Bench the 4 players least likely to score: backup GK, weakest fixtures,
+   lowest pts/M, rotation risks, and any doubtful/non-predicted-starter players.
+4. **Bench slot assignment** — put the most likely non-starters (rotation
    risks, bench role in their national team) where you have the *next best*
    same-position cover in the starting XI. That way, if the bench sub comes on,
    you get meaningful points.
-4. When the All-Squad Points chip is active, bench order matters: put the
+5. When the All-Squad Points chip is active, bench order matters: put the
    highest expected scorer on the bench first (bench order = scoring priority).
+
+**compute_squad_ev enrichment:** When calling `compute_squad_ev` to rank players
+or evaluate transfers, pass the Step 2.5 data so the EV engine applies it automatically:
+```
+availabilityData: entries from availabilityMap as [{ playerId, status }]
+lineupData:       entries from lineupMap as [{ playerId, predictedStarter, confidence }]
+```
+This causes the engine to zero out injured/suspended (formMultiplier=0), reduce
+doubtful (formMultiplier=0.4), and correctly split starter/bench EV based on
+predicted lineups — so the rankings already reflect real availability.
 
 ---
 
@@ -309,6 +381,8 @@ legal, validated plan.
 - [ ] Transfers used ≤ `transfersAllowed` (or chip covers the excess).
 - [ ] Captain and vice-captain are two different players, both expected to start.
 - [ ] No injured / expelled / missing / eliminated player in the starting XI.
+- [ ] No player with external `availabilityMap` status `'injured'` or `'suspended'` in the starting XI.
+- [ ] Captain and vice-captain both have `lineupMap` `predictedStarter: true`, OR explicitly note "lineup data unavailable for [team]" if their national team's data wasn't fetched.
 - [ ] Any recommended chip is not in `bonusesUsed` (not already spent).
 - [ ] Window state is consistent: if CLOSED, no transfers or captain changes recommended.
 
@@ -338,7 +412,7 @@ No transfers recommended — squad is healthy, no upgrades worth the slot.
 ---
 
 ### Captain & Vice
-**Captain:** [Name] — [one-line reason: fixture, form, minute confidence]
+**Captain:** [Name] — [one-line reason: fixture, form, minute confidence, lineup status]
 **Vice:** [Name] — [one-line reason]
 
 ---
@@ -363,7 +437,9 @@ FWD: [name] · [name] · [name]
 ---
 
 ### Watch-outs
-- [Any injuries, suspension risks, elimination news]
+- [Injuries, suspensions, doubtful players — with source and reason]
+- [Any players benched due to predicted non-starter status]
+- [If API_FOOTBALL_KEY missing: "External injury data unavailable — add API_FOOTBALL_KEY for full coverage"]
 - Deadline: transfers AND captain changes lock 30 min before [first match of round] — one cutoff for the whole round, not per match.
 - Points finalize by 16:00 Israel time the day after the round ends.
 
@@ -402,7 +478,8 @@ FWD: [name] · [name] · [name]
 A nailed-on starter scoring 2 base points + upside beats a rotation-risk star
 who might not hit 60 minutes. Avoid players likely to be subbed off before 60
 min. In national team context, look for players who are their nation's
-guaranteed starters, not squad members called up as depth.
+guaranteed starters, not squad members called up as depth. Use `lineupMap` data
+to confirm predicted starters — it is the most direct signal available.
 
 ### Per-nation cap progression
 
