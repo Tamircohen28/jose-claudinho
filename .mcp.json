@@ -4,7 +4,8 @@
       "command": "node",
       "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.js"],
       "env": {
-        "SPORT5_COOKIE": "${SPORT5_COOKIE}"
+        "SPORT5_COOKIE": "${SPORT5_COOKIE}",
+        "API_FOOTBALL_KEY": "${API_FOOTBALL_KEY}"
       }
     }
   }
