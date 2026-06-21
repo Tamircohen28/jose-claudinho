@@ -10,7 +10,7 @@ Usage:
                     "[HH:MM] Team A vs Team B"   (HH:MM = Israel time, optional)
                   Example:
                     --matches "20:00 Spain vs Saudi Arabia, 23:00 Belgium vs Iran, 02:00 Uruguay vs Cape Verde"
-                  If omitted, the script tries TheSportsDB (limited free data).
+                  If omitted, fixtures are fetched automatically from ESPN.
 
 Kickoff times in output are always in Israel time (UTC+3).
 """
@@ -27,11 +27,9 @@ import concurrent.futures
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
-SPORT5_BASE         = "https://dreamteam.sport5.co.il/api"
-SEASON_ID           = 9
-SPORTSDB_BASE       = "https://www.thesportsdb.com/api/v1/json/3"
-SPORTSDB_WC_ID      = "4429"
-SPORTSDB_WC_SEASON  = "2026"
+SPORT5_BASE = "https://dreamteam.sport5.co.il/api"
+SEASON_ID   = 9
+ESPN_BASE   = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard"
 
 US_EASTERN = timezone(timedelta(hours=-4))   # EDT (summer)
 ISRAEL_TZ  = timezone(timedelta(hours=+3))   # IST
@@ -194,49 +192,45 @@ def _time_to_sort(il_time: str) -> float:
     return h + (24 if h < 10 else 0) + m / 60
 
 
-# ── TheSportsDB fixtures (auto-detect fallback) ────────────────────────────────
+# ── ESPN fixtures (auto-detect) ────────────────────────────────────────────────
 
-def get_fixtures_from_sportsdb(target_date: str) -> list[dict]:
+def get_fixtures_from_espn(target_date: str) -> list[dict]:
     """
-    Try TheSportsDB for fixtures on target_date (US Eastern).
-    Returns empty list on failure or when data unavailable.
+    Fetch WC fixtures for target_date from ESPN's public scoreboard API.
+    target_date is YYYY-MM-DD in US Eastern; ESPN groups games by that ET date.
+    Returns fixtures sorted by Israel kickoff time.
     """
-    events: list[dict] = []
-    for url in [
-        f"{SPORTSDB_BASE}/eventsseason.php?id={SPORTSDB_WC_ID}&s={SPORTSDB_WC_SEASON}",
-        f"{SPORTSDB_BASE}/eventsnextleague.php?id={SPORTSDB_WC_ID}",
-        f"{SPORTSDB_BASE}/eventsday.php?d={target_date}&l=FIFA%20World%20Cup",
-    ]:
-        try:
-            data = _fetch_json(url)
-            evs = (data.get("events") or []) if isinstance(data, dict) else []
-            events.extend(evs)
-        except Exception:
-            pass
-
-    # Deduplicate by event id
-    seen: set[str] = set()
-    unique = []
-    for ev in events:
-        eid = ev.get("idEvent", "")
-        if eid not in seen:
-            seen.add(eid)
-            unique.append(ev)
+    date_nodash = target_date.replace("-", "")
+    url = f"{ESPN_BASE}?dates={date_nodash}"
+    try:
+        data = _fetch_json(url)
+    except Exception as e:
+        print(f"[warn] ESPN fetch failed: {e}", file=sys.stderr)
+        return []
 
     result = []
-    for ev in unique:
-        date_str = ev.get("dateEvent", "")
-        time_str = ev.get("strTime") or "00:00:00"
-        if not date_str:
+    for ev in (data.get("events") or []):
+        comp = (ev.get("competitions") or [{}])[0]
+        teams = comp.get("competitors") or []
+        home = next((t for t in teams if t.get("homeAway") == "home"), {})
+        away = next((t for t in teams if t.get("homeAway") == "away"), {})
+        home_name = (home.get("team") or {}).get("displayName") or ""
+        away_name = (away.get("team") or {}).get("displayName") or ""
+        if not home_name or not away_name:
             continue
-        et_dt = _utc_to_tz(date_str, time_str, US_EASTERN)
-        if not et_dt or et_dt.strftime("%Y-%m-%d") != target_date:
-            continue
-        il_dt = _utc_to_tz(date_str, time_str, ISRAEL_TZ)
-        il_time = il_dt.strftime("%H:%M") if il_dt else "??:??"
+
+        # comp.date is ISO-8601 UTC, e.g. "2026-06-21T16:00Z"
+        raw_date = comp.get("date") or ev.get("date") or ""
+        try:
+            utc_dt = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+            il_dt  = utc_dt.astimezone(ISRAEL_TZ)
+            il_time = il_dt.strftime("%H:%M")
+        except Exception:
+            il_time = "??:??"
+
         result.append({
-            "home":     ev.get("strHomeTeam") or "",
-            "away":     ev.get("strAwayTeam") or "",
+            "home":     home_name,
+            "away":     away_name,
             "il_time":  il_time,
             "sort_key": _time_to_sort(il_time),
         })
@@ -389,12 +383,12 @@ Examples:
         if not fixtures:
             sys.exit("No valid matches parsed from --matches.")
     else:
-        print(f"Fetching WC fixtures for {target_date} from TheSportsDB…", file=sys.stderr)
-        fixtures = get_fixtures_from_sportsdb(target_date)
+        print(f"Fetching WC fixtures for {target_date} from ESPN…", file=sys.stderr)
+        fixtures = get_fixtures_from_espn(target_date)
         if not fixtures:
             print(
-                f"\nNo fixtures found for {target_date} via TheSportsDB (free tier is limited).\n"
-                "Specify matches manually:\n"
+                f"\nNo fixtures found for {target_date} via ESPN.\n"
+                "Override manually if needed:\n"
                 f'  python scripts/league-matchups.py {target_date} \\\n'
                 '    --matches "20:00 Team A vs Team B, 23:00 Team C vs Team D"\n',
                 file=sys.stderr,
