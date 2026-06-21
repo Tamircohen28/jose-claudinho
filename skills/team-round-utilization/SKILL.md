@@ -5,9 +5,21 @@ description: >
   points, XI/bench. Use for /team-round-utilization or when the user asks who played
   this round on their squad. Hebrew output, Israel UTC+3.
 version: 1.3.0
-user-invocable: false
 disable-model-invocation: true
+allowed-tools: [
+  "mcp__plugin_jose-claudinho_fantasy-wc__team_round_utilization",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_my_leagues",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_league_table",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_my_team",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_user_team"
+]
 ---
+
+> **Multi-host:** `allowed-tools` enforces access on Claude Code only. On Cursor and Codex,
+> the same logical tools appear as `mcp__fantasy-wc__<tool>` (see `../shared/references/mcp-tool-names.md`).
+
+> **Arguments:** `$ARGUMENTS` may be a team name (with league context), a userId, league
+> name/id, or stage (group / r32 / r16 / qf / sf / final). Default: your connected team.
 
 # Team Round Utilization
 

@@ -12,13 +12,17 @@ stores and analyzes data, then hands a plan to the user.
 ```
 ┌─────────────────────────── Claude Code ───────────────────────────┐
 │                                                                    │
-│  commands/                     skills/                             │
-│  ├─ /squad-advice    ─────────▶ weekly-squad-advisor               │
-│  ├─ /snapshot-league                                           │
-│  ├─ /fantasy-setup                                             │
-│  ├─ /team-round-utilization ──▶ team-round-utilization           │
-│  ├─ /league-round-utilization ▶ league-round-utilization         │
-│  └─ /league-watchlist        ─▶ league-watchlist                 │
+│  skills/  (each slash-invocable: /<skill-name>)                    │
+│  ├─ squad-advice            (/squad-advice)                        │
+│  ├─ squad-debate            (/squad-debate)                        │
+│  ├─ transfer-optimizer      (/transfer-optimizer)                  │
+│  ├─ snapshot-league         (/snapshot-league)                     │
+│  ├─ fantasy-setup           (/fantasy-setup)                       │
+│  ├─ team-round-utilization  (/team-round-utilization)              │
+│  ├─ league-round-utilization(/league-round-utilization)           │
+│  ├─ league-watchlist        (/league-watchlist)                    │
+│  ├─ league-round-report     (/league-round-report)                 │
+│  └─ league-next24h-matchups (/league-next24h-matchups)             │
 │                                           │ calls MCP tools        │
 │                                           ▼                        │
 │                          .mcp.json → fantasy-wc server (stdio)     │

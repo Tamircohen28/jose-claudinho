@@ -17,8 +17,8 @@ For people changing the code.
   Sport5 API, TheSportsDB fixtures, and local JSON snapshots.
 - It's bundled by **esbuild** into a single committed file (`dist/index.js`) so the
   plugin runs with no `node_modules` at runtime.
-- The plugin layer (`.claude-plugin/`, `.mcp.json`, `skills/`, `commands/`) wires that
-  server into Claude Code and adds reasoning skills (`weekly-squad-advisor`,
+- The plugin layer (`.claude-plugin/`, `.mcp.json`, `skills/`) wires that
+  server into Claude Code and adds slash-invocable reasoning skills (`squad-advice`,
   `team-round-utilization`, `league-round-utilization`, `league-watchlist`).
 - **`npm run typecheck` is the correctness gate** — there is no unit-test suite yet.
 

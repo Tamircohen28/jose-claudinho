@@ -51,7 +51,7 @@ workflow.
 ## Changing game rules
 
 Edit **only** `src/rules.ts` (the single source of truth), rebuild, and update
-`skills/weekly-squad-advisor/references/scoring-and-constraints.md` to match.
+`skills/squad-advice/references/scoring-and-constraints.md` to match.
 
 ## Release
 

@@ -24,7 +24,7 @@ in the app. This is a deliberate safety boundary, not a limitation to be removed
 
 ## How it thinks — the weekly loop
 
-The `weekly-squad-advisor` skill runs a fixed procedure each round:
+The `squad-advice` skill runs a fixed procedure each round:
 
 1. Work out the current **stage** and pull its rules (budget, per-nation cap, transfers).
 2. Read **your team** — current XI, bench, captain, budget, transfers left.

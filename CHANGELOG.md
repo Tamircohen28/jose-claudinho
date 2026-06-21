@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-06-22
+
+### Changed
+- **Collapsed the command+skill two-file pattern into single slash-invocable skills.**
+  Claude Code now derives a slash command from each `skills/<name>/SKILL.md`, so the
+  separate `commands/` layer is redundant. Every command's unique guidance (argument
+  parsing, output-format reminders, the multi-host `allowed-tools` footnote) was folded
+  into its skill, and the command tool lists are now `allowed-tools` in skill frontmatter.
+- Renamed `weekly-squad-advisor` → `squad-advice` and `multi-agent-squad-debate` →
+  `squad-debate` so each skill's directory name matches its slash command.
+- All merged skills now set `disable-model-invocation: true` and drop the dead
+  `user-invocable: false` flag — preserving user-only invocation with no behavior change.
+
+### Added
+- `snapshot-league` and `fantasy-setup` skills (previously command-only).
+
+### Removed
+- The `commands/` directory and the `"commands": "./commands/"` manifest entries
+  (Cursor and Codex). No tool, rule, or MCP behavior changed.
+
 ## [1.2.0] - 2026-06-15
 
 ### Added
