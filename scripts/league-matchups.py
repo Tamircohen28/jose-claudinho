@@ -127,8 +127,8 @@ HEBREW_TO_ENGLISH: dict[str, list[str]] = {
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _normalize_he(s: str) -> str:
-    """Normalise Hebrew geresh/gershayim to ASCII equivalents."""
-    return s.strip().replace("׳", "'").replace("״", '"')
+    """Normalise Hebrew geresh/gershayim and Sport5's stray backticks to ASCII equivalents."""
+    return s.strip().replace("׳", "'").replace("״", '"').replace("`", "'")
 
 
 def _fetch_json(url: str, cookie: str | None = None) -> dict | list:
@@ -177,6 +177,7 @@ def parse_matches(raw: str) -> list[dict]:
             "home":     sides[0].strip(),
             "away":     sides[1].strip(),
             "il_time":  il_time,
+            "et_time":  "??:??",
             "sort_key": _time_to_sort(il_time),
         })
     result.sort(key=lambda x: x["sort_key"])
@@ -222,16 +223,19 @@ def get_fixtures_from_espn(target_date: str) -> list[dict]:
         # comp.date is ISO-8601 UTC, e.g. "2026-06-21T16:00Z"
         raw_date = comp.get("date") or ev.get("date") or ""
         try:
-            utc_dt = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
-            il_dt  = utc_dt.astimezone(ISRAEL_TZ)
+            utc_dt  = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+            il_dt   = utc_dt.astimezone(ISRAEL_TZ)
+            et_dt   = utc_dt.astimezone(US_EASTERN)
             il_time = il_dt.strftime("%H:%M")
+            et_time = et_dt.strftime("%H:%M")
         except Exception:
-            il_time = "??:??"
+            il_time = et_time = "??:??"
 
         result.append({
             "home":     home_name,
             "away":     away_name,
             "il_time":  il_time,
+            "et_time":  et_time,
             "sort_key": _time_to_sort(il_time),
         })
 
@@ -310,6 +314,7 @@ def build_owner_map(squads: list[dict]) -> dict[int, list[str]]:
 def print_fixture(fix: dict, nation_player_map: dict, en_to_id: dict, owner_map: dict) -> None:
     home, away = fix["home"], fix["away"]
     il_time    = fix["il_time"]
+    et_time    = fix.get("et_time", "??:??")
 
     home_id = en_to_id.get(home.lower())
     away_id = en_to_id.get(away.lower())
@@ -333,7 +338,7 @@ def print_fixture(fix: dict, nation_player_map: dict, en_to_id: dict, owner_map:
     if not away_id:
         print(f"[warn] '{away}' not matched to any Sport5 nation (check spelling)", file=sys.stderr)
 
-    print(f"[{il_time}] {home} vs {away}:")
+    print(f"[{il_time} IL / {et_time} ET] {home} vs {away}:")
     print(f"For {home} plays:")
     for line in home_lines or ["(no players owned in the league)"]:
         print(line)
