@@ -59,10 +59,12 @@ and stop.
 
 Default league: **הכצים** (id `36127`).
 If `$ARGUMENTS` names a different league, call `sport5_get_my_leagues` to find it.
+Record the resolved league id as `leagueId` (defaulting to `36127`) and use it for all
+subsequent calls in Steps 4 and 7 — never hardcode `36127` once a different league was named.
 
 ### Step 4 — Fetch league player-fixture mappings
 
-Call `league_watchlist(leagueId=36127, includePlayed=false)`.
+Call `league_watchlist(leagueId=<resolved leagueId>, includePlayed=false)`.
 
 The tool returns `fixtures[]`, each with:
 - `fixture.homeTeam`, `fixture.awayTeam` — English team names
@@ -110,7 +112,7 @@ Rules:
 | Situation | Handling |
 |-----------|----------|
 | Game in the *next* fantasy round (not covered by `league_watchlist`) | Show `(no players owned in the league)` for both sides; add note: `[next round — watchlist not available yet]` |
-| `league_watchlist` call fails | Fall back: call `league_round_utilization(leagueId=36127)` to get each team's player list; cross-reference nationTeamId against the 24h fixture nations manually |
+| `league_watchlist` call fails | Fall back: call `league_round_utilization(leagueId=<resolved leagueId>)` to get each team's player list; cross-reference nationTeamId against the 24h fixture nations manually |
 | `worldcup_fixtures` returns no `date`/`time` for a game | Include the game with `[?:??]` and skip the 24h filter for it |
 
 ## Arguments
