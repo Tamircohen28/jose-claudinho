@@ -35,7 +35,7 @@ you a concrete plan; you apply it in the app.
 - **Learns over time.** `snapshot_top_teams` captures the top-N teams' squads +
   the market into local JSON each round; `analyze_ownership` turns that history
   into most-owned players, popular captains, best value, and differentials.
-- **Recommends.** The `weekly-squad-advisor` skill runs a 10-step procedure and
+- **Recommends.** The `squad-advice` skill runs a 10-step procedure and
   validates every plan against a hard constraint checklist before presenting it.
 - **Tracks round progress.** Round-utilization tools join your squad (or a whole
   private league) to World Cup fixtures — who has already played this round vs who is
@@ -46,18 +46,16 @@ you a concrete plan; you apply it in the app.
 | Type | Name | Purpose |
 |------|------|---------|
 | MCP server | `fantasy-wc` | 13 tools over the Sport5 API + TheSportsDB fixtures + local snapshots |
-| Skill | `weekly-squad-advisor` | Turns data + rules into a legal weekly plan |
-| Skill | `team-round-utilization` | Per-player fixture status for one fantasy team |
-| Skill | `league-round-utilization` | League-wide played vs upcoming counts |
-| Skill | `league-watchlist` | Upcoming fixtures with league-owned players |
-| Skill | `league-round-report` | Full league report (utilization + watchlist) |
-| Command | `/squad-advice` | Produce this round's transfer/captain/lineup plan |
-| Command | `/snapshot-league` | Capture top teams + market for learning |
-| Command | `/fantasy-setup` | Configure your session cookie and verify the connection |
-| Command | `/team-round-utilization` | One team's players: fixture, played/upcoming, points |
-| Command | `/league-round-utilization` | League table: how many players played this round |
-| Command | `/league-watchlist` | Games of interest for a private league |
-| Command | `/league-round-report` | Full league round report (recommended default) |
+| Skill | `squad-advice` | Produce this round's transfer/captain/lineup plan (`/squad-advice`) |
+| Skill | `squad-debate` | Three strategy agents debate, then synthesise a verdict (`/squad-debate`) |
+| Skill | `transfer-optimizer` | EV-grounded transfer & lineup optimizer (`/transfer-optimizer`) |
+| Skill | `snapshot-league` | Capture top teams + market for learning (`/snapshot-league`) |
+| Skill | `fantasy-setup` | Configure your session cookie and verify the connection (`/fantasy-setup`) |
+| Skill | `team-round-utilization` | One team's players: fixture, played/upcoming, points (`/team-round-utilization`) |
+| Skill | `league-round-utilization` | League table: how many players played this round (`/league-round-utilization`) |
+| Skill | `league-watchlist` | Games of interest for a private league (`/league-watchlist`) |
+| Skill | `league-round-report` | Full league round report — recommended default (`/league-round-report`) |
+| Skill | `league-next24h-matchups` | WC matches in the next 24h with league ownership (`/league-next24h-matchups`) |
 
 ### MCP tools
 
@@ -180,9 +178,9 @@ return a clear "set SPORT5_COOKIE" message if it's missing or expired.
 /league-watchlist כצים            # upcoming matches of interest only
 ```
 
-Or ask in natural language — *"who should I captain this week?"*,
-*"which two transfers should I make for the round of 16?"* — and the
-`weekly-squad-advisor` skill activates automatically.
+These skills are user-invoked only (`disable-model-invocation: true`): run the
+slash command (e.g. `/squad-advice`) to trigger the `squad-advice` skill — it does
+not auto-fire from a plain natural-language message.
 
 ## Update
 
@@ -197,7 +195,7 @@ Then restart Claude Code (or run `/plugin`) to load the latest build.
 ## How it works
 
 ```
-You ──▶ /squad-advice ──▶ weekly-squad-advisor skill
+You ──▶ /squad-advice ──▶ squad-advice skill
                               │
                               ├─ get_game_rules(stage)         → budget, caps, transfers
                               ├─ sport5_get_my_team            → your XI/bench/captain/budget

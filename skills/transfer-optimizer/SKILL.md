@@ -8,9 +8,28 @@ description: >
   stage rules. Read-and-recommend only; the user applies moves at
   https://fantasywc.sport5.co.il.
 version: 1.1.0
-user-invocable: false
 disable-model-invocation: true
+allowed-tools: [
+  "mcp__plugin_jose-claudinho_fantasy-wc__get_game_rules",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_my_team",
+  "mcp__plugin_jose-claudinho_fantasy-wc__worldcup_fixtures",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_list_players",
+  "mcp__plugin_jose-claudinho_fantasy-wc__compute_squad_ev",
+  "mcp__plugin_jose-claudinho_fantasy-wc__rank_transfer_candidates",
+  "mcp__plugin_jose-claudinho_fantasy-wc__predict_bracket_matchups",
+  "mcp__plugin_jose-claudinho_fantasy-wc__list_snapshots",
+  "mcp__plugin_jose-claudinho_fantasy-wc__analyze_ownership",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_my_leagues"
+]
 ---
+
+> **Multi-host:** `allowed-tools` enforces access on Claude Code only. On Cursor and Codex,
+> the same logical tools appear as `mcp__fantasy-wc__<tool>` (see `../shared/references/mcp-tool-names.md`).
+
+> **Arguments:** none required — the optimizer reads everything from your connected team
+> (cookie needed for squad/league data). Optional inline context: `stage=r16` overrides the
+> auto-detected stage; `fixtures_only` skips transfers and only updates the captain/chip
+> recommendation.
 
 # transfer-optimizer — Fantasy WC Transfer & Lineup Optimizer
 

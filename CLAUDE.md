@@ -32,13 +32,17 @@ reports round utilization (played vs upcoming) and league watchlists. It is
 | `mcp-server/src/storage.ts` | Local JSON snapshot read/write |
 | `mcp-server/src/fixtures.ts` | World Cup fixtures via TheSportsDB |
 | `mcp-server/dist/index.js` | **Committed** single-file esbuild bundle (the runtime artifact) |
-| `skills/weekly-squad-advisor/SKILL.md` | The 10-step weekly recommendation procedure |
+| `skills/squad-advice/SKILL.md` | The 10-step weekly recommendation procedure (`/squad-advice`) |
+| `skills/squad-debate/SKILL.md` | Multi-agent strategy debate + synthesis (`/squad-debate`) |
+| `skills/transfer-optimizer/SKILL.md` | EV-grounded transfer & lineup optimizer (`/transfer-optimizer`) |
+| `skills/snapshot-league/SKILL.md` | Capture top teams + market snapshot (`/snapshot-league`) |
+| `skills/fantasy-setup/SKILL.md` | Configure & verify the Sport5 cookie (`/fantasy-setup`) |
 | `skills/team-round-utilization/SKILL.md` | Per-team round player status |
 | `skills/league-round-utilization/SKILL.md` | League played vs upcoming table |
 | `skills/league-watchlist/SKILL.md` | League games-of-interest watchlist |
 | `skills/league-round-report/SKILL.md` | Combined league utilization + watchlist report |
+| `skills/league-next24h-matchups/SKILL.md` | WC matches in the next 24h with league ownership |
 | `skills/shared/references/` | Shared Hebrew labels, args, errors, report example |
-| `commands/` | `/squad-advice`, `/snapshot-league`, `/fantasy-setup`, `/team-round-utilization`, `/league-round-utilization`, `/league-watchlist`, `/league-round-report` |
 
 ## Build & test commands
 

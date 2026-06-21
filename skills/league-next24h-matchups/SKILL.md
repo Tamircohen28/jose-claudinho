@@ -6,9 +6,16 @@ description: >
   /league-next24h-matchups or when the user asks "what games are on today/tonight
   with my league players" or "who in כצים plays tonight".
 version: 1.0.0
-user-invocable: false
 disable-model-invocation: true
+allowed-tools: [
+  "mcp__plugin_jose-claudinho_fantasy-wc__worldcup_fixtures",
+  "mcp__plugin_jose-claudinho_fantasy-wc__league_watchlist",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_my_leagues"
+]
 ---
+
+> **Multi-host:** `allowed-tools` enforces access on Claude Code only. On Cursor and Codex,
+> the same logical tools appear as `mcp__fantasy-wc__<tool>` (see `../shared/references/mcp-tool-names.md`).
 
 # League Next-24h Matchup Report
 

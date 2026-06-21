@@ -35,16 +35,15 @@ export SPORT5_COOKIE='<Cookie header from DevTools>'
 
 Restart Cursor if you export the cookie after launch (MCP reads env at startup).
 
-### Skills and commands
+### Skills
 
-Bundled skills load from `skills/` via `.cursor-plugin/plugin.json`. Invoke explicitly:
+Bundled skills load from `skills/` via `.cursor-plugin/plugin.json`. Each skill is
+slash-invocable. Invoke explicitly:
 
 ```text
-/weekly-squad-advisor
+/squad-advice
 /league-round-report
 ```
-
-Or ask in natural language — *"who should I captain this week?"*
 
 MCP tools appear as **`mcp__fantasy-wc__<tool>`** (not the Claude Code prefix).
 See [mcp-tool-names.md](../../skills/shared/references/mcp-tool-names.md).

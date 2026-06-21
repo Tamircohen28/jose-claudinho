@@ -12,7 +12,7 @@ A **multi-host plugin** for Sport5 Fantasy World Cup 2026:
 | Cursor | `.cursor-plugin/plugin.json` | `make cursor-plugin` |
 | Codex | `.codex-plugin/plugin.json` | `make codex-plugin` or `codex plugin marketplace add TamirCohen28/jose-claudinho` |
 
-Shared components: `skills/`, `commands/`, `.mcp.json`, `mcp-server/dist/index.js`.
+Shared components: `skills/`, `.mcp.json`, `mcp-server/dist/index.js`.
 
 ## Hard constraints
 

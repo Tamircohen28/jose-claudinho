@@ -27,8 +27,7 @@ body:
       label: Area
       options:
         - MCP tool (sport5_* / worldcup_fixtures / analyze_ownership)
-        - Skill (weekly-squad-advisor)
-        - Slash command (/squad-advice, /snapshot-league, /fantasy-setup)
+        - Skill / slash command (/squad-advice, /snapshot-league, /fantasy-setup, ...)
         - Build / install
         - Other
     validations:

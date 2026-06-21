@@ -1,13 +1,27 @@
 ---
-name: weekly-squad-advisor
+name: squad-advice
 description: >
   Produces the weekly Sport5 Fantasy WC 2026 plan — transfers, captain, lineup, chips —
   under official rules. Use when the user asks for squad advice, transfers, captain pick,
   lineup help, or invokes /squad-advice. Parses optional stage and strategy goals.
 version: 1.4.0
-user-invocable: false
 disable-model-invocation: true
+allowed-tools: [
+  "mcp__plugin_jose-claudinho_fantasy-wc__get_game_rules",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_my_team",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_user_team",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_list_players",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_league_table",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_my_leagues",
+  "mcp__plugin_jose-claudinho_fantasy-wc__worldcup_fixtures",
+  "mcp__plugin_jose-claudinho_fantasy-wc__snapshot_top_teams",
+  "mcp__plugin_jose-claudinho_fantasy-wc__analyze_ownership",
+  "mcp__plugin_jose-claudinho_fantasy-wc__list_snapshots"
+]
 ---
+
+> **Multi-host:** `allowed-tools` enforces access on Claude Code only. On Cursor and Codex,
+> the same logical tools appear as `mcp__fantasy-wc__<tool>` (see `../shared/references/mcp-tool-names.md`).
 
 # Weekly Squad Advisor — Fantasy World Cup 2026 (Sport5)
 

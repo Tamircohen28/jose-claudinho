@@ -7,9 +7,19 @@ description: >
   mode (includePlayed=true). Complements league-round-utilization; use league-round-report for
   the full combined output.
 version: 1.3.0
-user-invocable: false
 disable-model-invocation: true
+allowed-tools: [
+  "mcp__plugin_jose-claudinho_fantasy-wc__league_watchlist",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_my_leagues"
+]
 ---
+
+> **Multi-host:** `allowed-tools` enforces access on Claude Code only. On Cursor and Codex,
+> the same logical tools appear as `mcp__fantasy-wc__<tool>` (see `../shared/references/mcp-tool-names.md`).
+
+> **Arguments:** `$ARGUMENTS` should name the league (e.g. כצים) or give a leagueId, and
+> optionally the stage or round number. If no league is given, list the user's leagues and ask
+> which one. For the full league report (utilization + watchlist), use `/league-round-report`.
 
 # League Watchlist — Games of Interest
 

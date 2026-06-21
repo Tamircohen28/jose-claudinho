@@ -87,8 +87,9 @@ failing.
 /team-round-utilization           # your squad: played vs upcoming
 ```
 
-Or ask in natural language — *"who should I captain this week?"* — and the
-`weekly-squad-advisor` skill activates automatically.
+These skills are user-invoked only (`disable-model-invocation: true`) — run the
+slash command (e.g. `/squad-advice`) to trigger the `squad-advice` skill; it does
+not auto-fire from a plain message.
 
 ## What you get back
 

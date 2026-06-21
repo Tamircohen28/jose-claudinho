@@ -1,14 +1,29 @@
 ---
-name: multi-agent-squad-debate
+name: squad-debate
 version: 1.1.0
-user-invocable: false
 disable-model-invocation: true
 description: >
   Three strategic agents (Conservative 🔵, Aggressive 🔴, Value 🟢) independently produce squad
   recommendations, debate the key decisions (captain, chip, transfers), then a synthesis
   verdict is produced. Use for /squad-debate when captain or chip choice is genuinely
   ambiguous. Requires worldcup_fixtures, compute_squad_ev, rank_transfer_candidates.
+allowed-tools: [
+  "mcp__plugin_jose-claudinho_fantasy-wc__get_game_rules",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_my_team",
+  "mcp__plugin_jose-claudinho_fantasy-wc__worldcup_fixtures",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_list_players",
+  "mcp__plugin_jose-claudinho_fantasy-wc__compute_squad_ev",
+  "mcp__plugin_jose-claudinho_fantasy-wc__rank_transfer_candidates",
+  "mcp__plugin_jose-claudinho_fantasy-wc__predict_bracket_matchups",
+  "mcp__plugin_jose-claudinho_fantasy-wc__list_snapshots",
+  "mcp__plugin_jose-claudinho_fantasy-wc__analyze_ownership",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_my_leagues",
+  "mcp__plugin_jose-claudinho_fantasy-wc__sport5_get_league_table"
+]
 ---
+
+> **Multi-host:** `allowed-tools` enforces access on Claude Code only. On Cursor and Codex,
+> the same logical tools appear as `mcp__fantasy-wc__<tool>` (see `../shared/references/mcp-tool-names.md`).
 
 # Multi-Agent Squad Debate — Fantasy World Cup 2026
 

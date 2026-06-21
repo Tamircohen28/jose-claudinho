@@ -40,7 +40,7 @@ Restart Codex after setting the variable so the MCP server inherits it.
 ## Usage
 
 - Invoke the plugin with `@jose-claudinho` or ask Codex to use bundled skills.
-- Skills: `weekly-squad-advisor`, `league-round-report`, etc. (`disable-model-invocation: true` — invoke via command or `@` mention).
+- Skills: `squad-advice`, `league-round-report`, etc. (`disable-model-invocation: true` — invoke the slash command or via `@` mention).
 - MCP tools appear as **`mcp__fantasy-wc__<tool>`**.
 
 See [mcp-tool-names.md](../../skills/shared/references/mcp-tool-names.md).

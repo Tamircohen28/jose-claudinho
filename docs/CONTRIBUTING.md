@@ -33,7 +33,7 @@ gates server-side branch protection behind Pro. Override a single push with
    npm run typecheck  # the correctness gate — must pass
    npm run build      # regenerate dist/index.js
    ```
-3. Make your change under `mcp-server/src/` (or in `skills/` / `commands/`).
+3. Make your change under `mcp-server/src/` (or in `skills/`).
 4. **Re-run `npm run typecheck` and `npm run build`, and commit the rebuilt
    `dist/index.js`** — it's the committed runtime artifact.
 5. Update [`../CHANGELOG.md`](../CHANGELOG.md) under `## [Unreleased]`.
