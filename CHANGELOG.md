@@ -6,6 +6,38 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-06-22
+
+### Added
+- **MILP squad optimizer** (`optimize_squad` MCP tool) — jointly solves the optimal 15-player
+  squad, starting XI, bench, and captain under all constraints (budget, formation, per-nation
+  cap, transfer limit) using the HiGHS WASM MILP solver. Returns the highest-EV legal squad
+  and an exact transfer list. Called by the `squad-advice` skill in Step 6 to validate or
+  replace the greedy transfer plan.
+- **Player-specific EV rates** — `compute_squad_ev` now derives per-player `pPlays`,
+  `pPlays60`, and `goalShare` overrides from lineup-confidence data (via `get_lineup_predictions`),
+  replacing global position-level constants. Players with high lineup confidence receive
+  materially higher EV; rotation risks are discounted.
+- **Monte Carlo bracket simulator** — `predict_bracket_matchups` now runs N=500 tournament
+  simulations with strength-adjusted KO win probabilities (logistic function clamped 0.20–0.80),
+  replacing the flat-50% heuristic. Returns per-team stage probabilities (pGroup, pR32, pR16,
+  pQF, pSF, pFinal) and expected rounds remaining.
+- **League-win probability overlay** (`compute_league_win` MCP tool) — computes P(beat rival)
+  for each rival using a normal approximation (Φ((myEV − rivalEV) / σ_diff)), then derives
+  an overall league-win probability and a `strategyMode` (conservative / balanced / aggressive)
+  based on current rank and score gap. Used by `squad-advice` in Step 9 to calibrate chip
+  and captain decisions.
+- `PlayerRateOverrides` interface in `scoring.ts` — formal contract for per-player EV
+  parameter overrides; `derivePlayerRates()` helper in `playerMapping.ts` converts lineup
+  confidence → rate overrides.
+
+### Changed
+- `squad-advice` skill updated to call `optimize_squad` as an MILP shortcut in Step 6,
+  and `compute_league_win` in Step 9 for adaptive strategy mode.
+- `bracketPredictor.ts` — KO advancement probabilities now strength-adjusted via
+  `estimateKoWinProb()`; `simulateTournamentPaths()` exported for external callers.
+- `mcp-server/package.json` — added `highs` v1.14.2 (HiGHS WASM MILP solver).
+
 ## [1.3.0] - 2026-06-22
 
 ### Changed

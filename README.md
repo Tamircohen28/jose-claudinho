@@ -40,12 +40,17 @@ you a concrete plan; you apply it in the app.
 - **Tracks round progress.** Round-utilization tools join your squad (or a whole
   private league) to World Cup fixtures — who has already played this round vs who is
   still waiting, and which upcoming matches matter for your league.
+- **Optimises combinatorially.** `optimize_squad` runs a Mixed Integer Linear Program (HiGHS
+  WASM) to jointly pick the best squad, XI, bench, and captain under every constraint at once
+  — budget, formation, nation cap, transfer limit. `compute_league_win` overlays your league
+  position to recommend whether to play conservatively (protect a lead) or aggressively
+  (maximise ceiling to close a gap).
 
 ## Components
 
 | Type | Name | Purpose |
 |------|------|---------|
-| MCP server | `fantasy-wc` | 13 tools over the Sport5 API + TheSportsDB fixtures + local snapshots |
+| MCP server | `fantasy-wc` | 20 tools over the Sport5 API + TheSportsDB fixtures + local snapshots |
 | Skill | `squad-advice` | Produce this round's transfer/captain/lineup plan (`/squad-advice`) |
 | Skill | `squad-debate` | Three strategy agents debate, then synthesise a verdict (`/squad-debate`) |
 | Skill | `transfer-optimizer` | EV-grounded transfer & lineup optimizer (`/transfer-optimizer`) |
@@ -56,13 +61,17 @@ you a concrete plan; you apply it in the app.
 | Skill | `league-watchlist` | Games of interest for a private league (`/league-watchlist`) |
 | Skill | `league-round-report` | Full league round report — recommended default (`/league-round-report`) |
 | Skill | `league-next24h-matchups` | WC matches in the next 24h with league ownership (`/league-next24h-matchups`) |
+| MCP tool | `optimize_squad` | MILP squad optimizer — best squad/XI/bench/captain under all constraints |
+| MCP tool | `compute_league_win` | League-win probability + adaptive strategy mode (conservative/balanced/aggressive) |
 
 ### MCP tools
 
 `sport5_list_players` · `sport5_get_my_team` · `sport5_get_user_team` ·
 `sport5_get_my_leagues` · `sport5_get_league_table` · `worldcup_fixtures` ·
 `snapshot_top_teams` · `analyze_ownership` · `list_snapshots` · `get_game_rules` ·
-`team_round_utilization` · `league_round_utilization` · `league_watchlist`
+`compute_squad_ev` · `rank_transfer_candidates` · `team_round_utilization` ·
+`league_round_utilization` · `league_watchlist` · `predict_bracket_matchups` ·
+`get_lineup_predictions` · `get_player_availability` · `optimize_squad` · `compute_league_win`
 
 ## Prerequisites
 
@@ -169,18 +178,24 @@ return a clear "set SPORT5_COOKIE" message if it's missing or expired.
 ## Usage
 
 ```text
-/fantasy-setup                    # first time: configure and verify
-/snapshot-league                  # capture this round's top teams (weekly)
-/squad-advice qf                  # plan for the quarter-final round
+/fantasy-setup                    # first time: configure and verify connection
+/snapshot-league                  # capture this round's top teams (do this weekly)
+/squad-advice qf                  # full 10-step plan for the quarter-final round
+/squad-debate                     # three AI managers debate, then synthesise a verdict
+/transfer-optimizer               # standalone EV-grounded transfer analysis
 /team-round-utilization           # your squad: who played vs still waiting
-/league-round-report כצים         # full league report (recommended)
-/league-round-utilization כצים    # private league: played/upcoming per team only
-/league-watchlist כצים            # upcoming matches of interest only
+/league-round-report כצים         # full league report — recommended default
+/league-round-utilization כצים    # league: played/upcoming counts per team
+/league-watchlist כצים            # upcoming fixtures of interest for your league
+/league-next24h-matchups          # WC matches in the next 24 h with league ownership
 ```
 
-These skills are user-invoked only (`disable-model-invocation: true`): run the
-slash command (e.g. `/squad-advice`) to trigger the `squad-advice` skill — it does
-not auto-fire from a plain natural-language message.
+Skills are user-invoked only (`disable-model-invocation: true`) — run the slash command
+to trigger; they do not auto-fire from a plain message.
+
+The underlying MCP tools (`optimize_squad`, `compute_league_win`, `compute_squad_ev`, etc.)
+are called automatically by the skills. Advanced users can call them directly via the MCP
+interface for custom analysis.
 
 ## Update
 
@@ -197,14 +212,20 @@ Then restart Claude Code (or run `/plugin`) to load the latest build.
 ```
 You ──▶ /squad-advice ──▶ squad-advice skill
                               │
-                              ├─ get_game_rules(stage)         → budget, caps, transfers
-                              ├─ sport5_get_my_team            → your XI/bench/captain/budget
-                              ├─ worldcup_fixtures             → who plays, eliminations
-                              ├─ snapshot_top_teams + analyze_ownership → what the best teams do
-                              ├─ sport5_list_players           → value & alternatives
-                              └─ validate vs constraint checklist → legal plan
+                              ├─ get_game_rules(stage)               → budget, caps, transfers
+                              ├─ sport5_get_my_team                  → your XI/bench/captain/budget
+                              ├─ worldcup_fixtures                   → who plays, eliminations
+                              ├─ predict_bracket_matchups (MC×500)   → per-team stage probabilities
+                              ├─ get_lineup_predictions              → confirmed/probable starters
+                              ├─ get_player_availability             → injuries & suspensions
+                              ├─ compute_squad_ev                   → per-player expected value
+                              ├─ snapshot_top_teams + analyze_ownership → ownership & differentials
+                              ├─ rank_transfer_candidates            → shortlist by EV gain
+                              ├─ optimize_squad (MILP)               → optimal squad/XI/bench/captain
+                              ├─ compute_league_win                  → league strategy mode
+                              └─ validate vs constraint checklist    → legal plan
                               ▼
-                       Concrete plan (transfers, captain, XI, bench, chips)
+                       Concrete plan (transfers, captain, XI, bench, chips, strategy mode)
 ```
 
 ## Development
