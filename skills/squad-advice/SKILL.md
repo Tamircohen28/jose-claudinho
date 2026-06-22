@@ -16,7 +16,9 @@ allowed-tools: [
   "mcp__plugin_jose-claudinho_fantasy-wc__worldcup_fixtures",
   "mcp__plugin_jose-claudinho_fantasy-wc__snapshot_top_teams",
   "mcp__plugin_jose-claudinho_fantasy-wc__analyze_ownership",
-  "mcp__plugin_jose-claudinho_fantasy-wc__list_snapshots"
+  "mcp__plugin_jose-claudinho_fantasy-wc__list_snapshots",
+  "mcp__plugin_jose-claudinho_fantasy-wc__optimize_squad",
+  "mcp__plugin_jose-claudinho_fantasy-wc__compute_league_win"
 ]
 ---
 
@@ -281,6 +283,13 @@ If no upgrades are worth a transfer (bench cover is fine, everyone available,
 fixtures are equal), recommend **holding all transfers** — unused transfers do
 NOT carry over, but making a poor transfer wastes a slot.
 
+**MILP optimizer shortcut:** After building the candidate shortlist, call `optimize_squad` with:
+- `candidatePlayers`: top-50 candidates from the shortlist (with EVs from `compute_squad_ev`)
+- `currentSquadIds`: your 15 current player IDs (from step 2)
+- `budgetM`, `maxPerNationalTeam`, `transfersAllowed`: from step 1 rules
+
+`optimize_squad` jointly solves all legal squads under budget/formation/nation-cap/transfer constraints and returns the highest-EV squad, XI, bench, captain, and exact transfer list. Use its output to validate or replace the greedy manual transfer plan. If it returns `optimal: false`, fall back to the manual greedy approach.
+
 ---
 
 ### Step 7 — Select captain and vice-captain (SKIP if window closed)
@@ -370,6 +379,11 @@ Available chips (each usable once per season — never recommend a spent chip):
 | 2 | 5 Substitutions | 5 transfers this round | You need to fix 4+ problems (injuries, eliminations, value upgrades) in one go. Do NOT waste on a light round. |
 | 3 | Double Captains | C ×2 AND VC ×2 | You have TWO premium captaincy options with great fixtures. Stacks with Triple Captain (captain ×3, vice ×2). |
 | 4 | All-Squad Points | All 15 players score | Your whole 15 (including bench) have great fixtures and are likely to start. Rare — only use when bench quality is high. |
+
+**League strategy mode (run first):** Call `compute_league_win` with `myProjectedEV` (from `compute_squad_ev` totalStartingXIEV), rival `projectedEV` estimates from `analyze_ownership` top teams, your rank from `sport5_get_my_leagues`, and `roundsRemaining`. Use the returned `strategyMode` to calibrate chip and captain decisions:
+- `conservative`: copy template captain, avoid risky differentials — protect your lead
+- `balanced`: standard approach
+- `aggressive`: prioritise ceiling over floor — favour high-variance chips (Triple Captain, Double Captains) over floor chips (All-Squad Points)
 
 **Chip decision rules:**
 - If no chip is clearly warranted, say **"Hold all chips."** Never spend

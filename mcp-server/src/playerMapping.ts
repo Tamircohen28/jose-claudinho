@@ -12,6 +12,7 @@ import path from "node:path";
 import type { SlimPlayer } from "./transform.js";
 import type { NationEntry } from "./nations.js";
 import { dataDir } from "./storage.js";
+import type { PlayerRateOverrides } from "./scoring.js";
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
@@ -255,4 +256,47 @@ export async function buildLineupMap(
     });
   }
   return entries;
+}
+
+/**
+ * Derive per-player EV rate overrides from lineup confidence and season data.
+ *
+ * lineupConfidence: 0–1 from LineupEntry.confidence (0 = unknown/bench, 1 = nailed-on starter)
+ * isInPredictedStarterIds: true if the player appears in predictedStarterIds for their team
+ * seasonGoalShare: optional fraction of team's total goals scored by this player (0–1)
+ */
+export function derivePlayerRates(
+  lineupConfidence: number,
+  isInPredictedStarterIds: boolean,
+  seasonGoalShare?: number,
+  position?: number
+): PlayerRateOverrides {
+  const conf = Math.max(0, Math.min(1, lineupConfidence));
+
+  // pPlays: scales from 0.55 (unknown) to 0.95 (nailed-on confirmed starter)
+  // Non-predicted starters get a 0.35 floor (they might come off the bench)
+  const pPlays = isInPredictedStarterIds
+    ? 0.55 + 0.40 * conf
+    : Math.max(0.35, 0.45 * conf);
+
+  // pPlays60: scales from 0.65 (unknown) to 0.92 (nailed-on)
+  const pPlays60 = isInPredictedStarterIds
+    ? 0.65 + 0.27 * conf
+    : Math.max(0.50, 0.60 * conf);
+
+  const overrides: PlayerRateOverrides = { pPlays, pPlays60 };
+
+  // If we have a player-specific season goal share, use it to adjust the goal share
+  // relative to the position-level baseline. Only apply when the position is known.
+  if (seasonGoalShare != null && seasonGoalShare > 0 && position != null) {
+    // Position baselines from scoring.ts GOAL_SHARE
+    const POSITION_BASELINE: Record<number, number> = {
+      1: 0.004, 2: 0.047, 3: 0.140, 4: 0.340,
+    };
+    const baseline = POSITION_BASELINE[position] ?? 0.140;
+    // Blend 50/50 between player-specific and position baseline (shrinkage toward mean)
+    overrides.goalShare = 0.5 * seasonGoalShare + 0.5 * baseline;
+  }
+
+  return overrides;
 }

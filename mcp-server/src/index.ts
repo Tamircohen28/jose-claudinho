@@ -27,6 +27,7 @@ import {
   evaluateChips,
   type OpponentTier,
   type FixtureDifficulty,
+  type PlayerRateOverrides,
 } from "./scoring.js";
 import {
   buildGroupStandings,
@@ -46,6 +47,9 @@ import { fetchAndCacheInjuries } from "./injuryClient.js";
 import { fetchAndCacheLineupPredictions } from "./lineupScraper.js";
 import { buildAvailabilityMap, buildLineupMap } from "./playerMapping.js";
 import { buildNationRegistry } from "./nations.js";
+import { optimizeSquad } from "./squadOptimizer.js";
+import { computeLeagueWinProbability, type RivalProjection } from "./leagueOptimizer.js";
+import { derivePlayerRates } from "./playerMapping.js";
 
 const server = new McpServer({
   name: "fantasy-wc",
@@ -749,13 +753,24 @@ server.registerTool(
         const formMultiplier = availOverride.has(p.playerId)
           ? availOverride.get(p.playerId)!
           : (p.formMultiplier ?? 1.0);
+        // Derive per-player rate overrides from lineup confidence
+        const lineupEntry = args.lineupData?.find(l => l.playerId === p.playerId);
+        const playerRates: PlayerRateOverrides | undefined = lineupEntry != null
+          ? derivePlayerRates(
+              lineupEntry.confidence ?? (lineupEntry.predictedStarter ? 0.85 : 0.30),
+              lineupEntry.predictedStarter,
+              undefined,
+              p.position
+            )
+          : undefined;
         return computePlayerEV(
           p.playerId,
           p.playerName,
           p.position,
           p.priceM,
           fixtures,
-          formMultiplier
+          formMultiplier,
+          playerRates
         );
       });
 
@@ -1159,6 +1174,199 @@ server.registerTool(
           : "");
 
       return result(structured, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+
+
+// ----------------------------------------------------------------------------
+// 19. MILP squad optimizer.
+// ----------------------------------------------------------------------------
+server.registerTool(
+  "optimize_squad",
+  {
+    title: "MILP squad optimizer",
+    description:
+      "Jointly optimise squad selection, formation, bench assignment and captain " +
+      "choice using a Mixed Integer Linear Program (HiGHS WASM solver). " +
+      "Given a candidate pool with pre-computed EVs (from compute_squad_ev), " +
+      "finds the legally feasible 15-player squad that maximises expected points " +
+      "under budget, formation, national-team cap and transfer-count constraints. " +
+      "Returns the optimal squad, XI, bench, captain, vice, formation and transfer list. " +
+      "Requires highs-js (npm install in mcp-server/).",
+    inputSchema: {
+      candidatePlayers: z
+        .array(
+          z.object({
+            playerId: z.number().int(),
+            playerName: z.string(),
+            position: z.number().int().min(1).max(4),
+            priceM: z.number(),
+            totalEV: z.number(),
+            nationTeamId: z.number().int(),
+          })
+        )
+        .describe("Player pool with pre-computed EVs from compute_squad_ev"),
+      currentSquadIds: z
+        .array(z.number().int())
+        .describe("15 player IDs currently in your squad (from sport5_get_my_team)"),
+      budgetM: z
+        .number()
+        .describe("Total squad budget in M (from get_game_rules budgetM)"),
+      maxPerNationalTeam: z
+        .number()
+        .int()
+        .describe("Max players per national team (from get_game_rules)"),
+      transfersAllowed: z
+        .number()
+        .int()
+        .describe("Max new players allowed in this round (from get_game_rules)"),
+    },
+    annotations: { readOnlyHint: true },
+  },
+  async (args) => {
+    try {
+      const candidatePool = args.candidatePlayers.map((p) => ({
+        playerId: p.playerId,
+        playerName: p.playerName,
+        position: p.position,
+        price: p.priceM,
+        fixtureCount: 0,
+        perFixtureEV: 0,
+        totalEV: p.totalEV,
+        captainEV: p.totalEV * 2,
+        tripleCaptainEV: p.totalEV * 3,
+        evPerMillion: p.priceM > 0 ? p.totalEV / p.priceM : 0,
+        fixtures: [],
+      }));
+      const nationIds = args.candidatePlayers.map((p) => p.nationTeamId);
+
+      const res = await optimizeSquad({
+        candidatePool,
+        nationIds,
+        currentSquadIds: args.currentSquadIds,
+        budgetM: args.budgetM,
+        maxPerNationalTeam: args.maxPerNationalTeam,
+        transfersAllowed: args.transfersAllowed,
+      });
+
+      if (!res.optimal) {
+        return result(res, `⚠ MILP could not find an optimal solution: ${res.infeasibilityNote ?? "unknown reason"}`);
+      }
+
+      const poolById = new Map(args.candidatePlayers.map((p) => [p.playerId, p]));
+      const starterNames = res.starterIds.map((id) => poolById.get(id)?.playerName ?? `#${id}`);
+      const benchNames = res.benchIds.map((id) => poolById.get(id)?.playerName ?? `#${id}`);
+      const captainName = poolById.get(res.captainId)?.playerName ?? `#${res.captainId}`;
+      const vcName = poolById.get(res.viceCaptainId)?.playerName ?? `#${res.viceCaptainId}`;
+      const transfersInNames = res.transfersIn.map((id) => poolById.get(id)?.playerName ?? `#${id}`);
+      const transfersOutNames = res.transfersOut.map((id) => `#${id}`);
+
+      const summary =
+        `✅ Optimal squad found — formation ${res.formation}, EV ${res.totalEV.toFixed(1)}\n` +
+        `Captain: ${captainName}  Vice: ${vcName}\n` +
+        `XI: ${starterNames.join(", ")}\n` +
+        `Bench: ${benchNames.join(", ")}\n` +
+        (res.transfersIn.length > 0
+          ? `Transfers IN: ${transfersInNames.join(", ")}\nTransfers OUT: ${transfersOutNames.join(", ")}\n`
+          : "No transfers needed.\n");
+
+      return result(res, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+
+// ----------------------------------------------------------------------------
+// 20. League-win probability overlay.
+// ----------------------------------------------------------------------------
+server.registerTool(
+  "compute_league_win",
+  {
+    title: "Compute league-win probability",
+    description:
+      "Given your projected EV and your rivals\' projected EVs, computes " +
+      "P(you outscore each rival) and P(you win the private league) using a " +
+      "normal approximation. Also recommends an adaptive strategy mode " +
+      "(conservative / balanced / aggressive) based on your league rank, " +
+      "score gap, and rounds remaining. " +
+      "Use after compute_squad_ev to get your squad EV, and sport5_get_league_table " +
+      "for rivals. Pair with analyze_ownership for rival EV estimates.",
+    inputSchema: {
+      myProjectedEV: z
+        .number()
+        .describe("Your squad\'s projected total EV this round (from compute_squad_ev totalStartingXIEV)"),
+      myEVVariance: z
+        .number()
+        .optional()
+        .describe("Variance of your EV (default: 25% of myProjectedEV)"),
+      rivals: z
+        .array(
+          z.object({
+            teamName: z.string(),
+            managerId: z.number().int().optional(),
+            projectedEV: z.number().describe("Rival\'s estimated EV this round"),
+            currentScore: z.number().optional().describe("Rival\'s cumulative score so far"),
+          })
+        )
+        .describe("Rival teams with their projected EVs"),
+      myRank: z
+        .number()
+        .int()
+        .min(1)
+        .describe("Your current rank in the private league"),
+      totalTeams: z
+        .number()
+        .int()
+        .min(2)
+        .describe("Total teams in the private league"),
+      roundsRemaining: z
+        .number()
+        .int()
+        .min(0)
+        .describe("Rounds remaining in the tournament"),
+      myCurrentScore: z
+        .number()
+        .optional()
+        .describe("Your cumulative total score so far"),
+      leaderCurrentScore: z
+        .number()
+        .optional()
+        .describe("Current leader\'s cumulative score"),
+    },
+    annotations: { readOnlyHint: true },
+  },
+  async (args) => {
+    try {
+      const report = computeLeagueWinProbability({
+        myProjectedEV: args.myProjectedEV,
+        myEVVariance: args.myEVVariance,
+        rivals: args.rivals as RivalProjection[],
+        myRank: args.myRank,
+        totalTeams: args.totalTeams,
+        roundsRemaining: args.roundsRemaining,
+        myCurrentScore: args.myCurrentScore,
+        leaderCurrentScore: args.leaderCurrentScore,
+      });
+
+      const summary =
+        `Strategy: **${report.strategyMode.toUpperCase()}** — ${report.strategyRationale}\n` +
+        `P(win league): ${(report.pWinLeague * 100).toFixed(1)}%\n` +
+        `Per-rival win probabilities:\n` +
+        report.rivalWinProbabilities
+          .sort((a, b) => a.pBeatRival - b.pBeatRival)
+          .map(
+            (r) =>
+              `  ${r.pBeatRival >= 0.6 ? "✅" : r.pBeatRival >= 0.4 ? "⚖" : "⚠"} ` +
+              `${r.teamName}: ${(r.pBeatRival * 100).toFixed(0)}% ` +
+              `(EV diff ${r.evDiff > 0 ? "+" : ""}${r.evDiff.toFixed(1)})`
+          )
+          .join("\n");
+
+      return result(report, summary);
     } catch (e) {
       return errorResult(e);
     }

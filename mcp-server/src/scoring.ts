@@ -30,6 +30,18 @@ import { SCORING, BONUS_CHIPS } from "./rules.js";
  */
 export type OpponentTier = "elite" | "strong" | "medium" | "weak";
 
+/** Per-player rate overrides to replace position-level constants. */
+export interface PlayerRateOverrides {
+  /** P(player starts and plays any minutes). Default: P_PLAYS (0.82) */
+  pPlays?: number;
+  /** P(plays ≥60 min | plays). Default: P_PLAYS_60 (0.73) */
+  pPlays60?: number;
+  /** Share of team xG attributed to this player. Default: GOAL_SHARE[pos] */
+  goalShare?: number;
+  /** Share of team xA attributed to this player. Default: ASSIST_SHARE[pos] */
+  assistShare?: number;
+}
+
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
 /** Difficulty of one upcoming fixture from a player's perspective. */
@@ -280,11 +292,12 @@ export function buildFixtureDifficulty(
 export function computePlayerFixtureEV(
   position: number,
   fixture: FixtureDifficulty,
-  formMultiplier = 1.0
+  formMultiplier = 1.0,
+  playerRates?: PlayerRateOverrides
 ): PlayerFixtureEV {
   const pos = position as 1 | 2 | 3 | 4;
-  const pPlays = P_PLAYS * formMultiplier;
-  const pPlays60 = pPlays * P_PLAYS_60;
+  const pPlays = (playerRates?.pPlays ?? P_PLAYS) * formMultiplier;
+  const pPlays60 = pPlays * (playerRates?.pPlays60 ?? P_PLAYS_60);
   const pPlaysSub = pPlays - pPlays60; // plays but <60 min
 
   // ── Minutes ──────────────────────────────────────────────────────────────
@@ -301,7 +314,7 @@ export function computePlayerFixtureEV(
       ? SCORING.goalByPosition.MID
       : SCORING.goalByPosition.FWD;
 
-  const eGoals = fixture.xGFor * GOAL_SHARE[pos] * pPlays;
+  const eGoals = fixture.xGFor * (playerRates?.goalShare ?? GOAL_SHARE[pos]) * pPlays;
   const goalEV = eGoals * posGoalPts;
 
   // Multi-goal bonus: E[bonus] ≈ Σ_{k=2}^∞ (k-1)·P(Poisson(λ)=k)
@@ -309,7 +322,7 @@ export function computePlayerFixtureEV(
   const goalBonusEV = eGoals > 0 ? Math.max(0, (eGoals * eGoals) / 2) : 0;
 
   // ── Assists ───────────────────────────────────────────────────────────────
-  const eAssists = fixture.xGFor * ASSIST_SHARE[pos] * pPlays;
+  const eAssists = fixture.xGFor * (playerRates?.assistShare ?? ASSIST_SHARE[pos]) * pPlays;
   const assistEV = eAssists * SCORING.assist;
 
   // ── Clean sheet (GK / DEF only) ───────────────────────────────────────────
@@ -384,10 +397,11 @@ export function computePlayerEV(
   position: number,
   price: number,
   fixtures: FixtureDifficulty[],
-  formMultiplier = 1.0
+  formMultiplier = 1.0,
+  playerRates?: PlayerRateOverrides
 ): PlayerEV {
   const fixtureEVs = fixtures.map((f) =>
-    computePlayerFixtureEV(position, f, formMultiplier)
+    computePlayerFixtureEV(position, f, formMultiplier, playerRates)
   );
   const totalEV = fixtureEVs.reduce((s, f) => s + f.subtotalEV, 0);
   const perFixture = fixtures.length > 0 ? totalEV / fixtures.length : 0;
