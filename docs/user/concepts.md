@@ -39,6 +39,30 @@ The "learning" is that ownership analysis is built from the accumulating snapsho
 history — the more rounds you snapshot, the better its read on what the best managers
 are doing.
 
+
+## The engine (v1.4.0+)
+
+In addition to the rule-based procedure above, the plugin includes three analytical engines:
+
+**Expected Value (EV) decomposition.** `compute_squad_ev` scores each player by breaking their
+expected points into per-event probabilities — minutes, goals, assists, clean sheets, cards,
+penalties — weighted by fixture difficulty and advancement probability. From v1.4.0, the
+`pPlays` and `goalShare` rates are **player-specific**, derived from lineup-confidence data:
+a nailed-on starter gets materially higher EV than a rotation risk at the same position.
+
+**MILP squad optimizer.** `optimize_squad` runs a Mixed Integer Linear Program (HiGHS WASM)
+that jointly picks the best squad, XI, bench, and captain under all constraints at once. This
+replaces the greedy one-transfer-at-a-time approach with a global search over all legal squads.
+
+**Monte Carlo bracket simulator.** `predict_bracket_matchups` simulates the tournament 500
+times with strength-adjusted win probabilities to estimate each team's chance of reaching each
+stage. This weights future fixture EV correctly — Brazil's fixture in the QF is worth more than
+a weaker side's, even before either team has played it.
+
+**League-win overlay.** `compute_league_win` calculates your probability of beating each rival
+and winning your league, then recommends a `strategyMode` (conservative / balanced / aggressive)
+to calibrate chip and captain decisions to your position.
+
 ## Round utilization (private leagues)
 
 Three commands report how squad players map to real World Cup fixtures in the
