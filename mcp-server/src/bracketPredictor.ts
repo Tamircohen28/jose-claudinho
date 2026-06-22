@@ -13,6 +13,8 @@
  * letters. We approximate probable matchups using that bracket layout.
  */
 
+import { matchProbabilities } from "./strengthModel.js";
+
 export interface FixtureResult {
   homeTeam: string;
   awayTeam: string;
@@ -234,16 +236,19 @@ function estimateAdvancementProbs(teams: TeamStanding[], isComplete: boolean): v
     });
   }
 
-  // Expected additional rounds = P(advance from group) × E[rounds in knockouts]
-  // R32 win (P≈0.5) → R16 win (P≈0.45) → QF win (P≈0.40) → SF win (P≈0.35) → Final
-  // E[knockout rounds] ≈ 0.5+0.5*0.45+… ≈ 1.6 for equal teams; adjust by seed
+  // Expected additional rounds using calibrated strength-based knockout win probabilities.
+  // P(advance each knockout round) = P(win 90min) + P(draw)*0.5 (50% shootout coin flip).
+  // Opponent is modelled as the average team (neutral matchup).
   for (const t of teams) {
     const pAdv = t.probAdvanceFromGroup;
+    // Calibrated P(win knockout match) vs average opponent from the strength model
+    const mp = matchProbabilities(t.teamName, "Average", 1.0);
+    const pKnockoutWin = Math.min(0.85, Math.max(0.15, mp.probWin + mp.probDraw * 0.5));
     const r32 = pAdv;
-    const r16 = r32 * 0.50;
-    const qf  = r16 * 0.50;
-    const sf  = qf  * 0.50;
-    const fin = sf  * 0.50;
+    const r16 = r32 * pKnockoutWin;
+    const qf  = r16 * pKnockoutWin;
+    const sf  = qf  * pKnockoutWin;
+    const fin = sf  * pKnockoutWin;
     t.expectedRoundsRemaining =
       +(r32 * 1 + r16 * 1 + qf * 1 + sf * 1 + fin * 1).toFixed(2);
   }
@@ -330,13 +335,15 @@ export function predictProbableMatchups(
     for (const t of gs.teams) {
       teamExpectedRounds[t.teamName] = t.expectedRoundsRemaining;
       const pAdv = t.probAdvanceFromGroup;
+      const mp = matchProbabilities(t.teamName, "Average", 1.0);
+      const pKO = Math.min(0.85, Math.max(0.15, mp.probWin + mp.probDraw * 0.5));
       teamStageProbabilities[t.teamName] = {
         group: 1.0,
         r32: +pAdv.toFixed(3),
-        r16: +(pAdv * 0.50).toFixed(3),
-        qf: +(pAdv * 0.25).toFixed(3),
-        sf: +(pAdv * 0.125).toFixed(3),
-        final: +(pAdv * 0.063).toFixed(3),
+        r16: +(pAdv * pKO).toFixed(3),
+        qf:  +(pAdv * pKO * pKO).toFixed(3),
+        sf:  +(pAdv * pKO * pKO * pKO).toFixed(3),
+        final: +(pAdv * pKO * pKO * pKO * pKO).toFixed(3),
       };
     }
   }

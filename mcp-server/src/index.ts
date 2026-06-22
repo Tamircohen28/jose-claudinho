@@ -18,7 +18,7 @@ import {
   summarizeTeam,
   positionLabel,
 } from "./transform.js";
-import { rulesForStage } from "./rules.js";
+import { rulesForStage, type StageKey } from "./rules.js";
 import {
   buildFixtureDifficulty,
   computePlayerEV,
@@ -28,6 +28,9 @@ import {
   type OpponentTier,
   type FixtureDifficulty,
 } from "./scoring.js";
+import { recommendChips } from "./chipOptimizer.js";
+import { optimizeSquad, type PlayerInput } from "./squadOptimizer.js";
+import { planTransfers, type BracketSurvivalProbs } from "./transferPlanner.js";
 import {
   buildGroupStandings,
   predictProbableMatchups,
@@ -775,7 +778,7 @@ server.registerTool(
 
       const squadEV = computeSquadEV(playerEVs, starterSet);
 
-      const chips = evaluateChips({
+      const chips = recommendChips({
         squadEV,
         roundsRemaining: args.roundsRemaining ?? 3,
         chipsUsed: args.chipsUsed ?? [],
@@ -1159,6 +1162,83 @@ server.registerTool(
           : "");
 
       return result(structured, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+
+// ── optimize_squad ────────────────────────────────────────────────────────────
+const playerInputSchema = z.object({
+  playerId: z.number().int(),
+  playerName: z.string(),
+  position: z.number().int().min(1).max(4),
+  priceM: z.number().positive(),
+  ev: z.number(),
+  nationKey: z.union([z.string(), z.number()]),
+  locked: z.boolean().optional(),
+  excluded: z.boolean().optional(),
+});
+
+server.tool(
+  "optimize_squad",
+  "Select the optimal 15-man squad, starting XI, and captain using a MILP solver under budget, formation, and national-team-cap constraints from the official game rules.",
+  {
+    players: z.array(playerInputSchema).describe("Player pool (use compute_squad_ev output or sport5_list_players)"),
+    budgetM: z.number().describe("Total budget in millions (e.g. 120 for group stage)"),
+    stageKey: z.enum(["group","r32","r16","qf","sf","final"]).optional().default("group"),
+    robust: z.boolean().optional().default(false).describe("If true, use conservative worst-case EV (×0.8) for robustness"),
+  },
+  async (args) => {
+    try {
+      const squadResult = await optimizeSquad(
+        args.players as PlayerInput[],
+        args.budgetM,
+        (args.stageKey ?? "group") as StageKey,
+        { robust: args.robust ?? false }
+      );
+      const summary =
+        squadResult.feasible
+          ? `Optimal squad: ${squadResult.starterPlayerIds.length} starters, captain #${squadResult.captainId}. ` +
+            `XI EV: ${squadResult.totalStarterEV.toFixed(1)} pts, bench EV: ${squadResult.totalBenchEV.toFixed(1)} pts. ` +
+            `Budget remaining: ${squadResult.budgetRemainingM.toFixed(1)}M.`
+          : `No feasible squad found: ${squadResult.message ?? "unknown reason"}`;
+      return result(squadResult, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+
+// ── plan_transfers ────────────────────────────────────────────────────────────
+server.tool(
+  "plan_transfers",
+  "Plan optimal transfers across all remaining tournament stages using rolling-horizon MILP, with player EV weighted by bracket survival probability.",
+  {
+    currentSquadIds: z.array(z.number().int()).describe("Current squad player IDs"),
+    currentStage: z.enum(["group","r32","r16","qf","sf","final"]),
+    budgetM: z.number().describe("Available budget in millions"),
+    players: z.array(playerInputSchema).describe("Full player market"),
+    chipsUsed: z.array(z.string()).optional().default([]),
+    survivalProbs: z.record(z.string(), z.record(z.string(), z.number())).optional().default({}).describe(
+      "Per-stage team survival probabilities from predict_bracket_matchups (teamStageProbabilities field)"
+    ),
+  },
+  async (args) => {
+    try {
+      const planResult = await planTransfers(
+        args.currentSquadIds,
+        args.currentStage as StageKey,
+        args.budgetM,
+        args.players as PlayerInput[],
+        args.chipsUsed ?? [],
+        (args.survivalProbs ?? {}) as BracketSurvivalProbs
+      );
+      const summary =
+        `Transfer plan: ${planResult.stageByStage.length} stages remaining. ` +
+        `Total projected EV: ${planResult.totalProjectedEV.toFixed(1)} pts ` +
+        `(${planResult.evGainVsNoChanges >= 0 ? "+" : ""}${planResult.evGainVsNoChanges.toFixed(1)} vs staying pat).`;
+      return result(planResult, summary);
     } catch (e) {
       return errorResult(e);
     }

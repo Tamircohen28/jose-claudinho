@@ -15,6 +15,7 @@
  */
 
 import { SCORING, BONUS_CHIPS } from "./rules.js";
+import { buildFixtureDifficultyFromStrength } from "./strengthModel.js";
 
 // ─── Opponent tier ────────────────────────────────────────────────────────────
 
@@ -252,8 +253,14 @@ export function buildFixtureDifficulty(
   tier: OpponentTier,
   opponent = "TBD",
   fixtureId?: string,
-  overrides?: Partial<Pick<FixtureDifficulty, "xGFor" | "xGAgainst" | "probCleanSheet">>
+  overrides?: Partial<Pick<FixtureDifficulty, "xGFor" | "xGAgainst" | "probCleanSheet">>,
+  teamName?: string,
+  opponentTeamName?: string
 ): FixtureDifficulty {
+  // Use the calibrated Dixon-Coles model when both team names are available
+  if (teamName && opponentTeamName) {
+    return buildFixtureDifficultyFromStrength(teamName, opponentTeamName, fixtureId);
+  }
   const probDraw = 0.24;
   const probWin = P_WIN[tier];
   return {
