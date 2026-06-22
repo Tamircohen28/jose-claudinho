@@ -49,6 +49,7 @@ import { buildAvailabilityMap, buildLineupMap } from "./playerMapping.js";
 import { buildNationRegistry } from "./nations.js";
 import { optimizeSquad } from "./squadOptimizer.js";
 import { computeLeagueWinProbability, type RivalProjection } from "./leagueOptimizer.js";
+import { getPenaltyTakers } from "./penaltyTakers.js";
 import { derivePlayerRates } from "./playerMapping.js";
 
 const server = new McpServer({
@@ -1367,6 +1368,49 @@ server.registerTool(
           .join("\n");
 
       return result(report, summary);
+    } catch (e) {
+      return errorResult(e);
+    }
+  }
+);
+
+
+// ----------------------------------------------------------------------------
+// get_penalty_takers — static registry of known penalty takers per nation.
+// ----------------------------------------------------------------------------
+server.registerTool(
+  "get_penalty_takers",
+  {
+    title: "Get penalty takers",
+    description:
+      "Returns the known primary (and optional backup) penalty taker for each " +
+      "national team, keyed by Sport5 nationTeamId. Penalty takers have a reliable " +
+      "scoring floor (won penalty +2 pts on top of the goal) that non-takers lack. " +
+      "Use this when evaluating transfer targets or choosing a captain — always " +
+      "prefer the penalty taker in a tight budget or captaincy decision. " +
+      "Data is curated from known 2025-26 international squad penalty responsibilities.",
+    inputSchema: {
+      nationTeamIds: z
+        .array(z.number().int())
+        .optional()
+        .describe("Filter to specific nation IDs. Omit to return all known takers."),
+    },
+    annotations: { readOnlyHint: true },
+  },
+  async (args) => {
+    try {
+      const entries = getPenaltyTakers(args.nationTeamIds);
+      const structured = {
+        total: entries.length,
+        takers: entries,
+      };
+      const lines = entries.map(
+        (e) =>
+          `${e.nationNameEn} (${e.nationTeamId}): ${e.primaryName} [id ${e.primary}]` +
+          (e.backupName ? ` · backup: ${e.backupName}` : "") +
+          ` — ${e.notes}`
+      );
+      return result(structured, lines.join("\n") || "No penalty takers found for the given nations.");
     } catch (e) {
       return errorResult(e);
     }

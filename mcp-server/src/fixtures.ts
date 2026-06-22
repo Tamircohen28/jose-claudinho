@@ -104,6 +104,27 @@ export async function getFixtures(opts: {
     }
   }
 
+  // For "all" queries: TheSportsDB free tier often returns only a handful of
+  // fixtures from the season endpoint. Supplement by combining past + next
+  // endpoints which are kept more up-to-date.
+  if (when === "all" && events.length < 10) {
+    try {
+      const [pastData, nextData] = await Promise.all([
+        getJson(`${base()}/eventspastleague.php?id=${leagueId()}`),
+        getJson(`${base()}/eventsnextleague.php?id=${leagueId()}`),
+      ]);
+      const seen = new Set(events.map((e: any) => e.idEvent));
+      for (const extra of [...(pastData.events || []), ...(nextData.events || [])]) {
+        if (!seen.has(extra.idEvent)) {
+          seen.add(extra.idEvent);
+          events.push(extra);
+        }
+      }
+    } catch {
+      /* ignore — return what we already have */
+    }
+  }
+
   let fixtures = events.map(slim);
 
   if (opts.teamContains) {
