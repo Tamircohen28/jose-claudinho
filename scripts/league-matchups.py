@@ -329,12 +329,14 @@ def _player_lines(pm: dict, owner_map: dict) -> list[str]:
             continue
         parts = []
         for ft, is_reserve, is_cap, is_sub_cap in entries:
-            tag = "[B]" if is_reserve else "[S]"
+            tags = ""
+            if is_reserve:
+                tags += "[B]"
             if is_cap:
-                tag += "[C1]"
+                tags += "[C1]"
             elif is_sub_cap:
-                tag += "[C2]"
-            parts.append(f"{ft} {tag}")
+                tags += "[C2]"
+            parts.append(f"{ft} {tags}".rstrip() if tags else ft)
         lines.append(f"* *{pname}* - {', '.join(parts)}")
     return lines
 
