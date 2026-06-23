@@ -293,9 +293,9 @@ def build_english_to_nation_id(market: list) -> dict[str, int]:
     return en_to_id
 
 
-def build_owner_map(squads: list[dict]) -> dict[int, list[str]]:
-    """playerId → [fantasyTeamName], active players only."""
-    owner_map: dict[int, list[str]] = {}
+def build_owner_map(squads: list[dict]) -> dict[int, list[tuple[str, bool]]]:
+    """playerId → [(fantasyTeamName, isReserve)], active players only."""
+    owner_map: dict[int, list[tuple[str, bool]]] = {}
     for i, squad in enumerate(squads):
         ft = LEAGUE_TEAMS[i]["teamName"]
         players = (
@@ -305,19 +305,27 @@ def build_owner_map(squads: list[dict]) -> dict[int, list[str]]:
             if p.get("isRemoved") or p.get("isActive") is False:
                 continue
             pid = int(p["playerId"])
-            owner_map.setdefault(pid, []).append(ft)
+            owner_map.setdefault(pid, []).append((ft, bool(p.get("isReserve"))))
     return owner_map
 
 
 # ── Output ─────────────────────────────────────────────────────────────────────
 
 def _player_lines(pm: dict, owner_map: dict) -> list[str]:
-    """Build WhatsApp-formatted player lines, grouping all owning teams per player."""
+    """Build WhatsApp-formatted player lines, grouping all owning teams per player.
+
+    Each team entry shows [S] (starting 11) or [B] (bench) after the team name.
+    """
     lines = []
     for pid, pname in pm.items():
-        owners = owner_map.get(pid, [])
-        if owners:
-            lines.append(f"* *{pname}* - {', '.join(owners)}")
+        entries = owner_map.get(pid, [])
+        if not entries:
+            continue
+        teams_str = ", ".join(
+            f"{ft} [S]" if not is_reserve else f"{ft} [B]"
+            for ft, is_reserve in entries
+        )
+        lines.append(f"* *{pname}* - {teams_str}")
     return lines
 
 
