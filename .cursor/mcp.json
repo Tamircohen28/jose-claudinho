@@ -4,7 +4,8 @@
       "command": "node",
       "args": ["${workspaceFolder}/mcp-server/dist/index.js"],
       "env": {
-        "SPORT5_COOKIE": "${env:SPORT5_COOKIE}"
+        "SPORT5_COOKIE": "${env:SPORT5_COOKIE}",
+        "API_FOOTBALL_KEY": "${env:API_FOOTBALL_KEY}"
       }
     }
   }

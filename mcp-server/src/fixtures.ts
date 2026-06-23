@@ -1,12 +1,13 @@
 /**
- * World Cup 2026 fixtures via TheSportsDB (free, no key required — default key "3").
+ * World Cup 2026 fixtures: official group-stage schedule (embedded) enriched
+ * with live scores/times from TheSportsDB when available.
  *
- * Note: TheSportsDB team naming will not map cleanly to the game's Hebrew
- * national-team names, so this is a loosely-matched schedule view, not joined
- * to player records.
+ * Note: external team names won't map cleanly to the game's Hebrew names, but
+ * nations.ts aliases bridge Sport5 ↔ English for round utilization.
  */
 
 import { envOr } from "./env.js";
+import { WC2026_GROUP_FIXTURES, type Wc2026GroupFixture } from "./wc2026Schedule.js";
 
 function key(): string {
   return envOr("SPORTSDB_KEY", "3");
@@ -55,10 +56,123 @@ function slim(ev: any): SlimFixture {
   };
 }
 
+const TEAM_ALIASES: Record<string, string[]> = {
+  "united states": ["usa", "united states"],
+  "dr congo": ["dr congo", "congo dr", "democratic republic of the congo"],
+  "ivory coast": ["ivory coast", "cote d'ivoire", "côte d'ivoire"],
+  "south korea": ["south korea", "korea republic", "korea"],
+  "czech republic": ["czech republic", "czechia"],
+};
+
+function normTeam(name: string | null): string {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[''`]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function teamsEquivalent(a: string | null, b: string | null): boolean {
+  const na = normTeam(a);
+  const nb = normTeam(b);
+  if (!na || !nb) return false;
+  if (na === nb || na.includes(nb) || nb.includes(na)) return true;
+  for (const variants of Object.values(TEAM_ALIASES)) {
+    if (variants.some((v) => normTeam(v) === na) && variants.some((v) => normTeam(v) === nb)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function fixtureKey(date: string | null, home: string | null, away: string | null): string {
+  const teams = [normTeam(home), normTeam(away)].sort().join("|");
+  return `${date || "?"}|${teams}`;
+}
+
+function officialToSlim(f: Wc2026GroupFixture): SlimFixture {
+  const played = f.homeScore != null && f.awayScore != null;
+  return {
+    id: f.matchNumber != null ? `wc2026-m${f.matchNumber}` : `wc2026-${f.date}-${normTeam(f.homeTeam)}`,
+    name: `${f.homeTeam} vs ${f.awayTeam}`,
+    round: String(f.round),
+    date: f.date,
+    time: null,
+    homeTeam: f.homeTeam,
+    awayTeam: f.awayTeam,
+    homeScore: f.homeScore,
+    awayScore: f.awayScore,
+    status: played ? "Match Finished" : "Not Started",
+    venue: null,
+  };
+}
+
+function mergeSportsDbIntoOfficial(official: SlimFixture[], sportsDb: SlimFixture[]): SlimFixture[] {
+  const byKey = new Map<string, SlimFixture>();
+  for (const f of sportsDb) {
+    byKey.set(fixtureKey(f.date, f.homeTeam, f.awayTeam), f);
+  }
+  return official.map((base) => {
+    const live =
+      byKey.get(fixtureKey(base.date, base.homeTeam, base.awayTeam)) ??
+      [...byKey.values()].find(
+        (f) =>
+          f.date === base.date &&
+          ((teamsEquivalent(f.homeTeam, base.homeTeam) && teamsEquivalent(f.awayTeam, base.awayTeam)) ||
+            (teamsEquivalent(f.homeTeam, base.awayTeam) && teamsEquivalent(f.awayTeam, base.homeTeam)))
+      );
+    if (!live) return base;
+    return {
+      ...base,
+      id: live.id || base.id,
+      name: live.name || base.name,
+      time: live.time ?? base.time,
+      homeScore: live.homeScore ?? base.homeScore,
+      awayScore: live.awayScore ?? base.awayScore,
+      status: live.status ?? base.status,
+      venue: live.venue ?? base.venue,
+    };
+  });
+}
+
+function officialGroupFixtures(): SlimFixture[] {
+  return WC2026_GROUP_FIXTURES.map(officialToSlim);
+}
+
 async function getJson(url: string): Promise<any> {
   const res = await fetch(url, { headers: { accept: "application/json" } });
   if (!res.ok) throw new Error(`TheSportsDB ${res.status} ${res.statusText}`);
   return res.json();
+}
+
+/** Pull live scores/times from TheSportsDB (best-effort; may be partial on free tier). */
+async function fetchSportsDbFixtures(): Promise<SlimFixture[]> {
+  const urls = [
+    `${base()}/eventsseason.php?id=${leagueId()}&s=${season()}`,
+    `${base()}/eventspastleague.php?id=${leagueId()}`,
+    `${base()}/eventsnextleague.php?id=${leagueId()}`,
+  ];
+  const seen = new Set<string>();
+  const out: SlimFixture[] = [];
+  for (const url of urls) {
+    try {
+      const data = await getJson(url);
+      for (const ev of data.events || []) {
+        const f = slim(ev);
+        const key = f.id || fixtureKey(f.date, f.homeTeam, f.awayTeam);
+        if (!seen.has(key)) {
+          seen.add(key);
+          out.push(f);
+        }
+      }
+    } catch {
+      /* ignore per-endpoint failures */
+    }
+  }
+  return out;
 }
 
 /**
@@ -66,66 +180,30 @@ async function getJson(url: string): Promise<any> {
  *  - "next": upcoming scheduled matches
  *  - "past": recently played matches
  *  - "all": the whole season's events
+ *
+ * Group stage uses the embedded official 72-fixture schedule; TheSportsDB enriches scores.
  */
 export async function getFixtures(opts: {
   when?: "next" | "past" | "all";
   limit?: number;
   teamContains?: string;
+  round?: number;
 }): Promise<{ source: string; count: number; fixtures: SlimFixture[]; note?: string }> {
   const when = opts.when || "next";
   const limit = opts.limit ?? 20;
 
-  let url: string;
-  if (when === "next") url = `${base()}/eventsnextleague.php?id=${leagueId()}`;
-  else if (when === "past") url = `${base()}/eventspastleague.php?id=${leagueId()}`;
-  else url = `${base()}/eventsseason.php?id=${leagueId()}&s=${season()}`;
+  const sportsDb = await fetchSportsDbFixtures();
+  let fixtures = mergeSportsDbIntoOfficial(officialGroupFixtures(), sportsDb);
 
-  let data: any;
-  try {
-    data = await getJson(url);
-  } catch (e: any) {
-    return {
-      source: url,
-      count: 0,
-      fixtures: [],
-      note: `TheSportsDB request failed: ${e?.message || e}`,
-    };
+  if (opts.round != null) {
+    fixtures = fixtures.filter((f) => String(f.round) === String(opts.round));
   }
 
-  let events: any[] = data.events || [];
-  if (!events.length && when === "next") {
-    // Free-tier next/past endpoints can be empty before the tournament has
-    // upcoming data; fall back to the full season list.
-    try {
-      const seasonData = await getJson(`${base()}/eventsseason.php?id=${leagueId()}&s=${season()}`);
-      events = seasonData.events || [];
-    } catch {
-      /* ignore */
-    }
+  if (when === "next") {
+    fixtures = fixtures.filter((f) => !isFixturePlayed(f));
+  } else if (when === "past") {
+    fixtures = fixtures.filter((f) => isFixturePlayed(f));
   }
-
-  // For "all" queries: TheSportsDB free tier often returns only a handful of
-  // fixtures from the season endpoint. Supplement by combining past + next
-  // endpoints which are kept more up-to-date.
-  if (when === "all" && events.length < 10) {
-    try {
-      const [pastData, nextData] = await Promise.all([
-        getJson(`${base()}/eventspastleague.php?id=${leagueId()}`),
-        getJson(`${base()}/eventsnextleague.php?id=${leagueId()}`),
-      ]);
-      const seen = new Set(events.map((e: any) => e.idEvent));
-      for (const extra of [...(pastData.events || []), ...(nextData.events || [])]) {
-        if (!seen.has(extra.idEvent)) {
-          seen.add(extra.idEvent);
-          events.push(extra);
-        }
-      }
-    } catch {
-      /* ignore — return what we already have */
-    }
-  }
-
-  let fixtures = events.map(slim);
 
   if (opts.teamContains) {
     const q = opts.teamContains.toLowerCase();
@@ -136,14 +214,17 @@ export async function getFixtures(opts: {
     );
   }
 
-  // Sort by date when available.
-  fixtures.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
-  const note = fixtures.length
-    ? undefined
-    : `No fixtures returned for World Cup league ${leagueId()} season ${season()}. ` +
-      `The free data source may not have 2026 fixtures populated yet.`;
+  fixtures.sort((a, b) => {
+    const da = `${a.date || ""} ${a.time || ""}`;
+    const db = `${b.date || ""} ${b.time || ""}`;
+    return da.localeCompare(db);
+  });
 
-  return { source: url, count: fixtures.length, fixtures: fixtures.slice(0, limit), note };
+  const source =
+    `official-wc2026-group (${WC2026_GROUP_FIXTURES.length} fixtures)` +
+    (sportsDb.length ? ` + TheSportsDB (${sportsDb.length} live)` : "");
+
+  return { source, count: fixtures.length, fixtures: fixtures.slice(0, limit) };
 }
 
 const PLAYED_STATUSES = new Set([
@@ -171,10 +252,10 @@ export function isFixturePlayed(f: SlimFixture): boolean {
   return false;
 }
 
-/** Fetch the full season fixture list (no limit). */
+/** Fetch the full group-stage fixture list (no limit). */
 export async function getAllFixtures(): Promise<SlimFixture[]> {
-  const res = await getFixtures({ when: "all", limit: 500 });
-  return res.fixtures;
+  const sportsDb = await fetchSportsDbFixtures();
+  return mergeSportsDbIntoOfficial(officialGroupFixtures(), sportsDb);
 }
 
 /** Group fixtures into matchday buckets by unique date (sorted chronologically). */
@@ -211,7 +292,7 @@ export function fixturesForFantasyRound(
 
   if (stageKey === "group") {
     const byIntRound = allFixtures.filter((f) => String(f.round) === String(roundId));
-    if (byIntRound.length >= 8) return byIntRound;
+    if (byIntRound.length >= 20) return byIntRound;
 
     const matchdays = groupFixturesByMatchday(allFixtures);
     const groupDays = matchdays.slice(0, 3);

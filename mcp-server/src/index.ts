@@ -7,6 +7,9 @@
  * official game rules. It never performs writes (transfers/lineup/captain).
  */
 
+import { loadWorkspaceEnv } from "./env.js";
+loadWorkspaceEnv();
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -330,11 +333,13 @@ server.registerTool(
   {
     title: "World Cup fixtures",
     description:
-      "Get World Cup 2026 fixtures/results from TheSportsDB. when=next (upcoming), " +
-      "past (recent results), or all (full season). Optional team-name filter. " +
-      "Note: external team names won't map cleanly to the game's Hebrew names.",
+      "Get World Cup 2026 group-stage fixtures/results. Uses the official 72-match " +
+      "schedule (MD1–MD3) with live scores from TheSportsDB when available. " +
+      "when=next (upcoming), past (results), or all. Optional round (1/2/3) and " +
+      "team-name filter. External team names won't map cleanly to Hebrew Sport5 names.",
     inputSchema: {
       when: z.enum(["next", "past", "all"]).optional().describe("Which fixtures (default next)."),
+      round: z.number().int().min(1).max(3).optional().describe("Group-stage matchday 1, 2, or 3."),
       limit: z.number().int().min(1).max(100).optional().describe("Max fixtures (default 20)."),
       teamContains: z.string().optional().describe("Filter to fixtures involving a team name substring."),
     },
@@ -342,7 +347,12 @@ server.registerTool(
   },
   async (args) => {
     try {
-      const res = await getFixtures({ when: args.when, limit: args.limit, teamContains: args.teamContains });
+      const res = await getFixtures({
+        when: args.when,
+        round: args.round,
+        limit: args.limit,
+        teamContains: args.teamContains,
+      });
       const summary =
         (res.note ? res.note + "\n" : "") +
         res.fixtures
