@@ -293,19 +293,25 @@ def build_english_to_nation_id(market: list) -> dict[str, int]:
     return en_to_id
 
 
-def build_owner_map(squads: list[dict]) -> dict[int, list[tuple[str, bool]]]:
-    """playerId → [(fantasyTeamName, isReserve)], active players only."""
-    owner_map: dict[int, list[tuple[str, bool]]] = {}
+def build_owner_map(squads: list[dict]) -> dict[int, list[tuple[str, bool, bool, bool]]]:
+    """playerId → [(fantasyTeamName, isReserve, isCaptain, isSubCaptain)], active only."""
+    owner_map: dict[int, list[tuple[str, bool, bool, bool]]] = {}
     for i, squad in enumerate(squads):
-        ft = LEAGUE_TEAMS[i]["teamName"]
-        players = (
-            ((squad.get("data") or {}).get("userTeam") or {}).get("userTeamPlayers") or []
-        )
+        ft        = LEAGUE_TEAMS[i]["teamName"]
+        user_team = (squad.get("data") or {}).get("userTeam") or {}
+        cap_id    = user_team.get("captainId")
+        sub_cap_id = user_team.get("subCaptainId")
+        players   = user_team.get("userTeamPlayers") or []
         for p in players:
             if p.get("isRemoved") or p.get("isActive") is False:
                 continue
             pid = int(p["playerId"])
-            owner_map.setdefault(pid, []).append((ft, bool(p.get("isReserve"))))
+            owner_map.setdefault(pid, []).append((
+                ft,
+                bool(p.get("isReserve")),
+                pid == cap_id,
+                pid == sub_cap_id,
+            ))
     return owner_map
 
 
@@ -314,18 +320,22 @@ def build_owner_map(squads: list[dict]) -> dict[int, list[tuple[str, bool]]]:
 def _player_lines(pm: dict, owner_map: dict) -> list[str]:
     """Build WhatsApp-formatted player lines, grouping all owning teams per player.
 
-    Each team entry shows [S] (starting 11) or [B] (bench) after the team name.
+    Tags per team: [S] starter / [B] bench, plus [C1] captain / [C2] sub-captain.
     """
     lines = []
     for pid, pname in pm.items():
         entries = owner_map.get(pid, [])
         if not entries:
             continue
-        teams_str = ", ".join(
-            f"{ft} [S]" if not is_reserve else f"{ft} [B]"
-            for ft, is_reserve in entries
-        )
-        lines.append(f"* *{pname}* - {teams_str}")
+        parts = []
+        for ft, is_reserve, is_cap, is_sub_cap in entries:
+            tag = "[B]" if is_reserve else "[S]"
+            if is_cap:
+                tag += "[C1]"
+            elif is_sub_cap:
+                tag += "[C2]"
+            parts.append(f"{ft} {tag}")
+        lines.append(f"* *{pname}* - {', '.join(parts)}")
     return lines
 
 
