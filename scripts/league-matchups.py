@@ -293,59 +293,84 @@ def build_english_to_nation_id(market: list) -> dict[str, int]:
     return en_to_id
 
 
-def build_owner_map(squads: list[dict]) -> dict[int, list[str]]:
-    """playerId → [fantasyTeamName], active players only."""
-    owner_map: dict[int, list[str]] = {}
+def build_owner_map(squads: list[dict]) -> dict[int, list[tuple[str, bool, bool, bool]]]:
+    """playerId → [(fantasyTeamName, isReserve, isCaptain, isSubCaptain)], active only."""
+    owner_map: dict[int, list[tuple[str, bool, bool, bool]]] = {}
     for i, squad in enumerate(squads):
-        ft = LEAGUE_TEAMS[i]["teamName"]
-        players = (
-            ((squad.get("data") or {}).get("userTeam") or {}).get("userTeamPlayers") or []
-        )
+        ft        = LEAGUE_TEAMS[i]["teamName"]
+        user_team = (squad.get("data") or {}).get("userTeam") or {}
+        cap_id    = user_team.get("captainId")
+        sub_cap_id = user_team.get("subCaptainId")
+        players   = user_team.get("userTeamPlayers") or []
         for p in players:
             if p.get("isRemoved") or p.get("isActive") is False:
                 continue
             pid = int(p["playerId"])
-            owner_map.setdefault(pid, []).append(ft)
+            owner_map.setdefault(pid, []).append((
+                ft,
+                bool(p.get("isReserve")),
+                pid == cap_id,
+                pid == sub_cap_id,
+            ))
     return owner_map
 
 
 # ── Output ─────────────────────────────────────────────────────────────────────
 
-def print_fixture(fix: dict, nation_player_map: dict, en_to_id: dict, owner_map: dict) -> None:
+def _player_lines(pm: dict, owner_map: dict) -> list[str]:
+    """Build WhatsApp-formatted player lines, grouping all owning teams per player.
+
+    Tags per team: [S] starter / [B] bench, plus [C1] captain / [C2] sub-captain.
+    """
+    lines = []
+    for pid, pname in pm.items():
+        entries = owner_map.get(pid, [])
+        if not entries:
+            continue
+        parts = []
+        for ft, is_reserve, is_cap, is_sub_cap in entries:
+            tags = ""
+            if is_reserve:
+                tags += "[B]"
+            if is_cap:
+                tags += "[C1]"
+            elif is_sub_cap:
+                tags += "[C2]"
+            parts.append(f"{ft} {tags}".rstrip() if tags else ft)
+        lines.append(f"* *{pname}* - {', '.join(parts)}")
+    return lines
+
+
+def format_fixture(fix: dict, nation_player_map: dict, en_to_id: dict, owner_map: dict) -> str:
     home, away = fix["home"], fix["away"]
     il_time    = fix["il_time"]
-    et_time    = fix.get("et_time", "??:??")
 
     home_id = en_to_id.get(home.lower())
     away_id = en_to_id.get(away.lower())
-
-    home_pm = nation_player_map.get(home_id, {}) if home_id else {}
-    away_pm = nation_player_map.get(away_id, {}) if away_id else {}
-
-    home_lines = [
-        f"{pname} - {ft}"
-        for pid, pname in home_pm.items()
-        for ft in owner_map.get(pid, [])
-    ]
-    away_lines = [
-        f"{pname} - {ft}"
-        for pid, pname in away_pm.items()
-        for ft in owner_map.get(pid, [])
-    ]
 
     if not home_id:
         print(f"[warn] '{home}' not matched to any Sport5 nation (check spelling)", file=sys.stderr)
     if not away_id:
         print(f"[warn] '{away}' not matched to any Sport5 nation (check spelling)", file=sys.stderr)
 
-    print(f"[{il_time} IL / {et_time} ET] {home} vs {away}:")
-    print(f"For {home} plays:")
-    for line in home_lines or ["(no players owned in the league)"]:
-        print(line)
-    print(f"For {away} plays:")
-    for line in away_lines or ["(no players owned in the league)"]:
-        print(line)
-    print()
+    home_pm = nation_player_map.get(home_id, {}) if home_id else {}
+    away_pm = nation_player_map.get(away_id, {}) if away_id else {}
+
+    home_lines = _player_lines(home_pm, owner_map)
+    away_lines = _player_lines(away_pm, owner_map)
+
+    parts: list[str] = []
+    parts.append(f"_*[{il_time}]  {home} vs {away}:*_")
+    parts.append("")
+    parts.append(f"_{home} players owned:_")
+    parts.append("")
+    parts.extend(home_lines or ["(no players owned in the league)"])
+    parts.append("")
+    parts.append(f"_{away} players owned:_")
+    parts.append("")
+    parts.extend(away_lines or ["(no players owned in the league)"])
+
+    return "\n".join(parts)
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
@@ -356,7 +381,7 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Today's games (auto-detect from TheSportsDB — limited free data):
+  # Today's games (auto-detect from ESPN):
   SPORT5_COOKIE="..." python scripts/league-matchups.py
 
   # Specific date, games manually specified (times in Israel time):
@@ -413,9 +438,16 @@ Examples:
     en_to_id          = build_english_to_nation_id(market)
     owner_map         = build_owner_map(squads)
 
-    print()  # blank line before results
-    for fix in fixtures:
-        print_fixture(fix, nation_player_map, en_to_id, owner_map)
+    blocks = [format_fixture(fix, nation_player_map, en_to_id, owner_map) for fix in fixtures]
+    full_output = "\n\n".join(blocks)
+
+    print()
+    print(full_output)
+
+    out_file = f"league-matchups-{target_date}.txt"
+    with open(out_file, "w", encoding="utf-8") as f:
+        f.write(full_output + "\n")
+    print(f"\nSaved to {out_file}", file=sys.stderr)
 
 
 if __name__ == "__main__":
