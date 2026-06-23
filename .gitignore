@@ -22,3 +22,6 @@ fantasywc-sport5-faq.md
 # TypeScript / esbuild build cruft (the committed dist/index.js bundle is intentional)
 *.tsbuildinfo
 mcp-server/dist/*.map
+
+# Generated league-matchups output files
+league-matchups-*.txt
