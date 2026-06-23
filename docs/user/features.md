@@ -219,7 +219,7 @@ interface for custom analysis.
 
 | Tool | Auth | What it returns |
 |------|------|----------------|
-| `worldcup_fixtures` | Public | WC 2026 fixtures via TheSportsDB — matches, dates, groups, results |
+| `worldcup_fixtures` | Public | WC 2026 group-stage fixtures (official 72-match schedule + TheSportsDB live scores); optional `round` 1/2/3 |
 | `predict_bracket_matchups` | Public | Monte Carlo bracket simulation (N=500) — per-team stage probabilities, expected rounds remaining |
 
 ### Lineup and availability tools

@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Official WC 2026 group-stage schedule** (`wc2026Schedule.ts`) — all 72 MD1–MD3 fixtures
+  embedded so `worldcup_fixtures` and round-utilization tools work when TheSportsDB has
+  incomplete 2026 data.
+- **`worldcup_fixtures` `round` filter** — optional matchday `1` / `2` / `3` for group stage.
+
+### Changed
+- `fixtures.ts` — official schedule is the primary source; TheSportsDB enriches live scores.
+- `env.ts` — `loadWorkspaceEnv()` reads repo-root `.env` when the host does not inject vars.
+- `.cursor/mcp.json` — pass through `API_FOOTBALL_KEY` (aligned with `.mcp.json`).
+
 ## [1.4.0] - 2026-06-22
 
 ### Added
