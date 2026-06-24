@@ -6,6 +6,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-06-24
+
+### Fixed
+- **`optimize_squad`** — define `__dirname`/`__filename` in the esbuild banner and inline the
+  HiGHS `wasm` (`wasmBinary`) so the bundled ESM solver initialises (was
+  `ReferenceError: __dirname is not defined` on every call).
+- **`get_player_availability`** — drop malformed null-id players in `transform.flattenMarket`
+  and `buildAvailabilityMap` (removed ~640 phantom "injured" rows / ~55 KB payload).
+- **`compute_squad_ev`** — cap bench EV to the 4 best non-starters so extra transfer
+  candidates no longer inflate bench / All-Squad-chip EV; corrected the `five_subs` chip
+  rationale (only beneficial during the group stage).
+- **`predict_bracket_matchups`** — derive group letters A–L from the official schedule
+  (`buildTeamToGroupMap`) so standings split into 12 real groups instead of one `"?"` table.
+- **CI** — pin `actions/checkout`@v4 and `actions/setup-node`@v4 (were nonexistent majors
+  that failed every run at startup).
+
 ### Added
 - **Official WC 2026 group-stage schedule** (`wc2026Schedule.ts`) — all 72 MD1–MD3 fixtures
   embedded so `worldcup_fixtures` and round-utilization tools work when TheSportsDB has
