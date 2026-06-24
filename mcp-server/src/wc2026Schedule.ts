@@ -88,3 +88,21 @@ export const WC2026_GROUP_FIXTURES: Wc2026GroupFixture[] = [
   { matchNumber: 67, round: 3, date: "2026-06-27", homeTeam: "Panama", awayTeam: "England", homeScore: null, awayScore: null },
   { matchNumber: 68, round: 3, date: "2026-06-27", homeTeam: "Croatia", awayTeam: "Ghana", homeScore: null, awayScore: null },
 ];
+
+/**
+ * Map each national-team name → its group letter (A–L).
+ *
+ * Derived from the fixture ordering above: the array lists all 6 fixtures of
+ * group A (4 teams, round-robin), then group B, and so on through group L.
+ */
+export function buildTeamToGroupMap(): Map<string, string> {
+  const map = new Map<string, string>();
+  const letters = "ABCDEFGHIJKL".split("");
+  for (let i = 0; i < WC2026_GROUP_FIXTURES.length; i++) {
+    const letter = letters[Math.floor(i / 6)] ?? "?";
+    const f = WC2026_GROUP_FIXTURES[i];
+    if (!map.has(f.homeTeam)) map.set(f.homeTeam, letter);
+    if (!map.has(f.awayTeam)) map.set(f.awayTeam, letter);
+  }
+  return map;
+}

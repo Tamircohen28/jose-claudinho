@@ -85,7 +85,11 @@ export function slimPlayer(p: any): SlimPlayer {
 export function flattenMarket(data: any[]): any[] {
   const players: any[] = [];
   for (const group of data || []) {
-    for (const pl of group.players || []) players.push(pl);
+    // Drop malformed entries (null id) at the source so no downstream tool
+    // carries phantom players.
+    for (const pl of group.players || []) {
+      if (pl && pl.id != null) players.push(pl);
+    }
   }
   return players;
 }
