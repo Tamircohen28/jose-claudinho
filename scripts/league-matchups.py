@@ -303,7 +303,7 @@ def build_owner_map(squads: list[dict]) -> dict[int, list[tuple[str, bool, bool,
         sub_cap_id = user_team.get("subCaptainId")
         players   = user_team.get("userTeamPlayers") or []
         for p in players:
-            if p.get("isRemoved") or p.get("isActive") is False:
+            if p.get("isRemoved"):
                 continue
             pid = int(p["playerId"])
             owner_map.setdefault(pid, []).append((
