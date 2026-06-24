@@ -13,6 +13,8 @@
  * letters. We approximate probable matchups using that bracket layout.
  */
 
+import { buildTeamToGroupMap } from "./wc2026Schedule.js";
+
 export interface FixtureResult {
   homeTeam: string;
   awayTeam: string;
@@ -90,6 +92,12 @@ export function buildGroupStandings(results: FixtureResult[]): GroupStandings[] 
     (r) => r.stage === "group" || (r.round != null && r.round <= 3 && r.stage == null)
   );
 
+  // Callers (e.g. worldcup_fixtures) usually omit the group letter, so derive it
+  // from the official schedule rather than collapsing every team into "?".
+  const teamToGroup = buildTeamToGroupMap();
+  const groupOf = (r: FixtureResult): string =>
+    r.group ?? teamToGroup.get(r.homeTeam) ?? teamToGroup.get(r.awayTeam) ?? "?";
+
   const groupMap = new Map<string, Map<string, TeamStanding>>();
 
   function ensureTeam(group: string, teamName: string): TeamStanding {
@@ -109,7 +117,7 @@ export function buildGroupStandings(results: FixtureResult[]): GroupStandings[] 
   }
 
   for (const r of groupResults) {
-    const group = r.group ?? "?";
+    const group = groupOf(r);
     const home = ensureTeam(group, r.homeTeam);
     const away = ensureTeam(group, r.awayTeam);
 
@@ -137,7 +145,7 @@ export function buildGroupStandings(results: FixtureResult[]): GroupStandings[] 
   const standings: GroupStandings[] = [];
   for (const [group, teamsMap] of Array.from(groupMap.entries()).sort()) {
     const initialSorted = Array.from(teamsMap.values()).sort(standingComparator);
-    const groupFixtures = groupResults.filter((r) => (r.group ?? "?").toUpperCase() === group);
+    const groupFixtures = groupResults.filter((r) => groupOf(r).toUpperCase() === group);
     const teams = applyHeadToHeadTiebreaking(initialSorted, groupFixtures);
     teams.forEach((t, i) => { t.groupRank = i + 1; });
 

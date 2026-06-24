@@ -11,13 +11,21 @@ await build({
   target: "node20",
   format: "esm",
   outfile: "dist/index.js",
+  // Inline any imported .wasm (e.g. the HiGHS solver) as a Uint8Array so the
+  // bundle stays a single self-contained file with no sidecar binaries.
+  loader: { ".wasm": "binary" },
   // esbuild preserves the entry file's own shebang (src/index.ts) on line 1,
-  // so the banner must NOT add a second one. It only restores `require` for
-  // any bundled CommonJS dependency.
+  // so the banner must NOT add a second one. It restores `require` for any
+  // bundled CommonJS dependency, and defines __filename/__dirname (absent in
+  // ESM) which the bundled Emscripten HiGHS loader references at init time.
   banner: {
     js: [
       "import { createRequire as __cr } from 'module';",
+      "import { fileURLToPath as __ftu } from 'url';",
+      "import { dirname as __dn } from 'path';",
       "const require = __cr(import.meta.url);",
+      "const __filename = __ftu(import.meta.url);",
+      "const __dirname = __dn(__filename);",
     ].join("\n"),
   },
   logLevel: "info",

@@ -10,6 +10,10 @@
  */
 
 import type { PlayerEV } from "./scoring.js";
+// Inlined at build time by esbuild (loader: { ".wasm": "binary" }) as a Uint8Array.
+// "highs/runtime" is the package's export alias for build/highs.wasm. Passed to the
+// HiGHS factory as `wasmBinary` so the solver needs no sidecar file at runtime.
+import highsWasm from "highs/runtime";
 
 // Bench EV coefficient: P(≥1 same-position starter plays 0 min) × round coverage
 const BENCH_EV_FACTOR = 0.35;
@@ -202,7 +206,7 @@ async function getHighs(): Promise<any> {
       "highs-js not available. Run: cd mcp-server && npm install  (or npm install highs-js)"
     );
   }
-  _highs = await loader();
+  _highs = await loader({ wasmBinary: highsWasm });
   return _highs;
 }
 

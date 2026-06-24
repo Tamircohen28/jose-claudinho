@@ -176,6 +176,9 @@ export async function buildAvailabilityMap(
 
   // Seed with Sport5's own flags (authoritative)
   for (const p of allPlayers) {
+    // Sport5's raw feed can include malformed entries with a null id / empty name;
+    // they must never enter the availability map (caused ~640 phantom rows).
+    if (p.id == null || !p.name) continue;
     if (!p.available) {
       const status: AvailabilityEntry["status"] = p.expelled ? "suspended" : "injured";
       map.set(p.id, { playerId: p.id, playerNameHe: p.name, status, source: "sport5" });

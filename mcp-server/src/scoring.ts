@@ -432,7 +432,13 @@ export function computeSquadEV(
   starterIds: Set<number>
 ): SquadEV {
   const starters = players.filter((p) => starterIds.has(p.playerId));
-  const bench = players.filter((p) => !starterIds.has(p.playerId));
+  // Cap the bench to the 4 highest-EV non-starters. Callers may pass extra
+  // transfer candidates alongside the 15-man squad; those must NOT inflate the
+  // bench / All-Squad-chip EV (a real squad has exactly 4 bench players).
+  const bench = players
+    .filter((p) => !starterIds.has(p.playerId))
+    .sort((a, b) => b.totalEV - a.totalEV)
+    .slice(0, 4);
 
   const startingXIEV = starters.reduce((s, p) => s + p.totalEV, 0);
   const benchEV = bench.reduce((s, p) => s + p.totalEV, 0);
@@ -590,20 +596,24 @@ export function evaluateChips(opts: {
   });
 
   // ── Five Substitutions ─────────────────────────────────────────────────────
+  // This chip raises a round's transfers to 5. It only BEATS the native
+  // allowance in a group-stage round (3/round). After the group stage every
+  // phase gives ≥5 or unlimited transfers (r32/r16 unlimited pre-stage windows;
+  // qf 5, sf 6, final 7), so the chip is redundant or worse there — and expires
+  // worthless if not used during the group stage.
   const subUsed = chipsUsed.includes("five_subs");
-  // Best used when you have many players from eliminated nations or need major overhaul
-  const isKnockoutStage = ["r16", "qf", "sf", "final"].includes(stage);
+  const isGroupStage = stage === "group";
   results.push({
     chipKey: "five_subs",
     chipLabel: "5 Substitutions",
     alreadyUsed: subUsed,
-    recommendNow: !subUsed && isKnockoutStage && roundsRemaining <= 4,
-    evGainIfUsedNow: 0, // situation-dependent
+    recommendNow: !subUsed && isGroupStage,
+    evGainIfUsedNow: 0, // = EV of the 4th/5th best transfer this round (caller-dependent)
     rationale: subUsed
       ? "Already used."
-      : isKnockoutStage
-      ? `Knockout stage — ideal if you need 5 changes to remove eliminated players or optimise for the bracket.`
-      : `Best saved for the boundary between group stage and knockouts, or before QF when you get 5 anyway.`,
+      : isGroupStage
+      ? `Group stage grants only 3 transfers/round — this chip raises it to 5. Use it on the round (ideally the LAST group round) where you have 4+ worthwhile moves; it expires worthless once the knockouts begin (r32/r16 are unlimited, qf+ already grant 5–7).`
+      : `No value at this stage — it already grants ≥5 (or unlimited) transfers, so the chip cannot beat the native allowance. It is only useful during the group stage.`,
   });
 
   // ── Double Captains ────────────────────────────────────────────────────────
