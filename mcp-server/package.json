@@ -1,6 +1,6 @@
 {
   "name": "fantasy-wc-mcp-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "description": "MCP server for Sport5 Fantasy World Cup 2026 \u2014 read & recommend tooling.",
