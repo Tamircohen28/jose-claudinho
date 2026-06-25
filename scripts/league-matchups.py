@@ -102,7 +102,7 @@ HEBREW_TO_ENGLISH: dict[str, list[str]] = {
     "ונצואלה":                        ["Venezuela"],
     'ארה"ב':                          ["United States", "USA"],
     "ארצות הברית":                    ["United States", "USA"],
-    "טורקיה":                         ["Turkey", "Turkiye"],
+    "טורקיה":                         ["Turkey", "Turkiye", "Türkiye"],
     "סרביה":                          ["Serbia"],
     "יוון":                           ["Greece"],
     "הונגריה":                        ["Hungary"],
