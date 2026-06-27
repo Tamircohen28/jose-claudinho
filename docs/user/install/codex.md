@@ -37,6 +37,23 @@ export SPORT5_COOKIE='<Cookie header from DevTools>'
 
 Restart Codex after setting the variable so the MCP server inherits it.
 
+A repo-root `.env` (gitignored) is loaded by the MCP server when Codex does not inject
+the variable.
+
+## Multi-host on this machine
+
+Each Codex session spawns its own stdio MCP process. Use the same `.env` or shell export
+as Claude Code and Cursor for a shared cookie; leave `FWC_DATA_DIR` unset for shared
+snapshots.
+
+To isolate Codex snapshots:
+
+```bash
+export FWC_DATA_DIR="$HOME/.fantasy-wc-mcp/codex-data"
+```
+
+Restart Codex after env changes. Full guide: [multi-host.md](../multi-host.md).
+
 ## Usage
 
 - Invoke the plugin with `@jose-claudinho` or ask Codex to use bundled skills.

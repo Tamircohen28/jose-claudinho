@@ -6,6 +6,25 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Multi-host user guide** (`docs/user/multi-host.md`) — running Claude Code, Cursor, and Codex
+  on one machine without MCP interference; shared vs isolated `FWC_DATA_DIR`.
+
+### Changed
+- Install guides, troubleshooting, README, and `fantasy-setup` skill — link multi-host setup,
+  `.env` auto-load, and per-host data-dir examples.
+
+### Fixed
+- **`worldcup_fixtures`** — completed games reported as "Not Started", corrupting standings,
+  P(advance), and the R32 bracket. Backfilled 21 verified results (3 MD2 + 18 MD3) into the
+  embedded schedule (`wc2026Schedule.ts`); the 6 still-unplayed MD3 deciders stay null.
+- **`worldcup_fixtures`** — score merge required an exact date match, so TheSportsDB results
+  were dropped whenever the two sources disagreed by ±1 day. Now matches on the (unique)
+  team pair and never overwrites a cached result with a null live score.
+- **`worldcup_fixtures`** — harvest per-round endpoints (`eventsround` r=1–7), widening live
+  coverage from 7 to 17 events on the free key; played-detection now falls back to end of the
+  match day when a fixture carries no kickoff time.
+
 ## [1.4.1] - 2026-06-24
 
 ### Fixed

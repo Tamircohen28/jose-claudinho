@@ -69,6 +69,18 @@ You need to snapshot first. Run `/snapshot-league` (which calls `snapshot_top_te
 at least once; ownership analysis is built from stored snapshots in
 `~/.fantasy-wc-mcp/data/` (or `FWC_DATA_DIR`).
 
+## Running multiple hosts or agents at once
+
+Claude Code, Cursor, and Codex each spawn an independent MCP process — they do not share
+stdio or a port. Snapshots default to a shared data dir so all hosts benefit from the same
+history.
+
+- **Cookie out of sync** — restart the host after updating `.env` or `SPORT5_COOKIE`.
+- **Heavy parallel fetches** — stagger `/snapshot-league` and league-wide tools across agents.
+- **Separate accounts or experiments** — set a different `FWC_DATA_DIR` per host.
+
+See [multi-host.md](multi-host.md).
+
 ## Fixtures look empty
 
 `worldcup_fixtures` falls back to the full season list when TheSportsDB's "next"

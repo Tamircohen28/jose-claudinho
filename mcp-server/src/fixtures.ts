@@ -93,6 +93,16 @@ function fixtureKey(date: string | null, home: string | null, away: string | nul
   return `${date || "?"}|${teams}`;
 }
 
+/**
+ * Date-agnostic key: just the unordered team pair. Group-stage pairings are
+ * unique (each pair meets once), so this safely matches a fixture even when the
+ * two data sources disagree on the calendar date (TheSportsDB vs the embedded
+ * schedule routinely differ by ±1 day, which used to break the score merge).
+ */
+function teamPairKey(home: string | null, away: string | null): string {
+  return [normTeam(home), normTeam(away)].sort().join("|");
+}
+
 function officialToSlim(f: Wc2026GroupFixture): SlimFixture {
   const played = f.homeScore != null && f.awayScore != null;
   return {
@@ -111,28 +121,36 @@ function officialToSlim(f: Wc2026GroupFixture): SlimFixture {
 }
 
 function mergeSportsDbIntoOfficial(official: SlimFixture[], sportsDb: SlimFixture[]): SlimFixture[] {
+  // Index live data by exact date+teams (fast path) AND by team-pair alone
+  // (date-tolerant fallback) so a date discrepancy between sources doesn't drop
+  // an otherwise-matching live result.
   const byKey = new Map<string, SlimFixture>();
+  const byPair = new Map<string, SlimFixture>();
   for (const f of sportsDb) {
     byKey.set(fixtureKey(f.date, f.homeTeam, f.awayTeam), f);
+    byPair.set(teamPairKey(f.homeTeam, f.awayTeam), f);
   }
   return official.map((base) => {
     const live =
       byKey.get(fixtureKey(base.date, base.homeTeam, base.awayTeam)) ??
-      [...byKey.values()].find(
+      byPair.get(teamPairKey(base.homeTeam, base.awayTeam)) ??
+      [...byPair.values()].find(
         (f) =>
-          f.date === base.date &&
-          ((teamsEquivalent(f.homeTeam, base.homeTeam) && teamsEquivalent(f.awayTeam, base.awayTeam)) ||
-            (teamsEquivalent(f.homeTeam, base.awayTeam) && teamsEquivalent(f.awayTeam, base.homeTeam)))
+          (teamsEquivalent(f.homeTeam, base.homeTeam) && teamsEquivalent(f.awayTeam, base.awayTeam)) ||
+          (teamsEquivalent(f.homeTeam, base.awayTeam) && teamsEquivalent(f.awayTeam, base.homeTeam))
       );
     if (!live) return base;
+    // Only let live scores OVERWRITE the embedded seed when the live source
+    // actually has them; never blank out a cached result with a null.
+    const liveHasScore = live.homeScore != null && live.awayScore != null;
     return {
       ...base,
       id: live.id || base.id,
       name: live.name || base.name,
       time: live.time ?? base.time,
-      homeScore: live.homeScore ?? base.homeScore,
-      awayScore: live.awayScore ?? base.awayScore,
-      status: live.status ?? base.status,
+      homeScore: liveHasScore ? live.homeScore : base.homeScore,
+      awayScore: liveHasScore ? live.awayScore : base.awayScore,
+      status: liveHasScore ? live.status ?? base.status : base.status,
       venue: live.venue ?? base.venue,
     };
   });
@@ -154,6 +172,12 @@ async function fetchSportsDbFixtures(): Promise<SlimFixture[]> {
     `${base()}/eventsseason.php?id=${leagueId()}&s=${season()}`,
     `${base()}/eventspastleague.php?id=${leagueId()}`,
     `${base()}/eventsnextleague.php?id=${leagueId()}`,
+    // Per-round endpoints widen coverage: the league-wide endpoints are capped
+    // (~5 events on the free key), but rounds are fetched independently. Group
+    // stage is rounds 1–3; 4–7 cover R32→final once the bracket is live.
+    ...[1, 2, 3, 4, 5, 6, 7].map(
+      (r) => `${base()}/eventsround.php?id=${leagueId()}&r=${r}&s=${season()}`
+    ),
   ];
   const seen = new Set<string>();
   const out: SlimFixture[] = [];
@@ -243,8 +267,12 @@ export function isFixturePlayed(f: SlimFixture): boolean {
   const st = (f.status || "").toLowerCase();
   if (PLAYED_STATUSES.has(st)) return true;
   if (st.includes("finished") || st.includes("full time")) return true;
-  if (f.date && f.time) {
-    const kickoff = new Date(`${f.date}T${f.time}Z`);
+  if (f.date) {
+    // Use the kickoff time when known; otherwise treat the fixture as ending at
+    // the close of its match day (+ a buffer). Embedded fixtures carry no time,
+    // so without this fallback a clearly-past game stays "Not Started" forever.
+    const stamp = f.time ? `${f.date}T${f.time}Z` : `${f.date}T23:59:59Z`;
+    const kickoff = new Date(stamp);
     if (!Number.isNaN(kickoff.getTime()) && kickoff.getTime() + 2.5 * 3600_000 < Date.now()) {
       return true;
     }

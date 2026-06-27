@@ -97,3 +97,10 @@ tool, so the advice is always checked against the real constraints.
 
 Your cookie stays on your machine, passed to the MCP server via an environment
 variable. It is never committed, logged, or sent anywhere except Sport5's own API.
+
+## Multiple hosts on one machine
+
+Claude Code, Cursor, and Codex each spawn an independent stdio MCP process — they do not
+share an MCP channel. Snapshots and caches default to `~/.fantasy-wc-mcp/data/` so all hosts
+can learn from the same history. See [multi-host.md](multi-host.md) for cookie sync,
+`FWC_DATA_DIR` isolation, and parallel-agent tips.
