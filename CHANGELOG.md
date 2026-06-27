@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Multi-host user guide** (`docs/user/multi-host.md`) — running Claude Code, Cursor, and Codex
+  on one machine without MCP interference; shared vs isolated `FWC_DATA_DIR`.
+
+### Changed
+- Install guides, troubleshooting, README, and `fantasy-setup` skill — link multi-host setup,
+  `.env` auto-load, and per-host data-dir examples.
+
+### Security
+- **`.gitignore`** — ignore `.env` / `.env.*`; stop tracking committed `.env` (secrets belong
+  in environment only).
+
 ## [1.4.1] - 2026-06-24
 
 ### Fixed

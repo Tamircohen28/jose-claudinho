@@ -11,6 +11,7 @@ For people using José Claudinho to manage their Sport5 Fantasy World Cup 2026 t
 | [install/cursor.md](install/cursor.md) | Cursor install |
 | [install/codex.md](install/codex.md) | Codex install |
 | [install/marketplace.md](install/marketplace.md) | Optional marketplace publishing |
+| [multi-host.md](multi-host.md) | Claude Code + Cursor + Codex on one machine — MCP isolation, shared data |
 | [troubleshooting.md](troubleshooting.md) | Cookie expired, plugin won't load, empty results |
 
 New here? Start with **[quick-start.md](quick-start.md)** to install and get your first

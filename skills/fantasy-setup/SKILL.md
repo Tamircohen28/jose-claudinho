@@ -30,9 +30,11 @@ exported as the `SPORT5_COOKIE` environment variable.
    copy the full `Cookie` request-header value.
 2. **Export it before launching the host**, e.g. in the shell profile:
    `export SPORT5_COOKIE='<the cookie string>'`
+   Or use a repo-root `.env` file (gitignored) — the MCP server loads it automatically.
    (then restart Claude Code / Cursor / Codex so the MCP server picks it up).
 3. **Note the optional vars:** `SPORT5_SEASON_ID` (default 9), `FWC_DATA_DIR` (snapshot
-   storage), `SPORTSDB_KEY` (default free key "3").
+   storage; default shared across hosts — see `docs/user/multi-host.md`), `SPORTSDB_KEY`
+   (default free key "3").
 4. **Verify:** call `worldcup_fixtures` (works without a cookie) to confirm the MCP is up, then
    `sport5_get_my_team` to confirm the cookie works. If the cookie is missing/expired, the tool
    returns a clear message — relay it and the fix.
