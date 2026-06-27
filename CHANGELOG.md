@@ -14,10 +14,6 @@ All notable changes to this project are documented here. The format follows
 - Install guides, troubleshooting, README, and `fantasy-setup` skill — link multi-host setup,
   `.env` auto-load, and per-host data-dir examples.
 
-### Security
-- **`.gitignore`** — ignore `.env` / `.env.*`; stop tracking committed `.env` (secrets belong
-  in environment only).
-
 ## [1.4.1] - 2026-06-24
 
 ### Fixed

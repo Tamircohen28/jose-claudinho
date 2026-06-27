@@ -10,10 +10,6 @@ npm-debug.log*
 data/
 *.local
 
-# Secrets — never commit session cookies or API keys
-.env
-.env.*
-
 # Editor
 .vscode/
 .idea/
