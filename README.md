@@ -148,6 +148,10 @@ start failing. Run `/fantasy-setup` for a guided walkthrough.
 | `SPORT5_COOKIE` | — | **Yes**, for private reads | Your session cookie |
 | `SPORT5_SEASON_ID` | `9` | No | Season id |
 | `FWC_DATA_DIR` | `~/.fantasy-wc-mcp/data` | No | Where snapshots are stored |
+
+Running Claude Code, Cursor, and Codex together? See
+[docs/user/multi-host.md](docs/user/multi-host.md) — MCP is isolated per session; only
+snapshots, caches, and API load are shared.
 | `SPORTSDB_KEY` | `3` | No | TheSportsDB API key (free default) |
 | `SPORTSDB_WC_LEAGUE_ID` | `4429` | No | TheSportsDB World Cup league id |
 | `SPORTSDB_WC_SEASON` | `2026` | No | Fixtures season |

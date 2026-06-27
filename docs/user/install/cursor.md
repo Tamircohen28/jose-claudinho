@@ -35,6 +35,9 @@ export SPORT5_COOKIE='<Cookie header from DevTools>'
 
 Restart Cursor if you export the cookie after launch (MCP reads env at startup).
 
+A repo-root `.env` (gitignored) also works — the MCP server loads it when Cursor does not
+inject `SPORT5_COOKIE`.
+
 ### Skills
 
 Bundled skills load from `skills/` via `.cursor-plugin/plugin.json`. Each skill is
@@ -58,6 +61,25 @@ but must invoke skills manually or describe workflows in chat.
 export SPORT5_COOKIE='...'
 # Reload Cursor after setting env
 ```
+
+## Multi-host on this machine
+
+Each Cursor chat gets its own MCP child process — no cross-talk with Claude Code or Codex.
+For shared snapshot history across hosts, use one cookie source and the default data dir.
+
+To isolate Cursor snapshots:
+
+```bash
+export FWC_DATA_DIR="$HOME/.fantasy-wc-mcp/cursor-data"
+```
+
+Or add to [`.cursor/mcp.json`](../../../.cursor/mcp.json) under `fantasy-wc.env`:
+
+```json
+"FWC_DATA_DIR": "/Users/you/.fantasy-wc-mcp/cursor-data"
+```
+
+Reload Cursor after env changes. Full guide: [multi-host.md](../multi-host.md).
 
 ## Update
 

@@ -101,5 +101,8 @@ match already played vs still upcoming, plus a watchlist of fixtures where leagu
 managers have picks (Hebrew-formatted output). You apply squad changes yourself in
 the app — the plugin never changes your team.
 
+Using Claude Code, Cursor, and Codex on the same machine? See
+[multi-host.md](multi-host.md).
+
 Next: [troubleshooting](troubleshooting.md) if anything misbehaves, or
 [concepts](concepts.md) for the mental model.
