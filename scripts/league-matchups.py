@@ -195,19 +195,22 @@ def _time_to_sort(il_time: str) -> float:
 
 # ── ESPN fixtures (auto-detect) ────────────────────────────────────────────────
 
-def get_fixtures_from_espn(il_date: str) -> list[dict]:
+def get_fixtures_from_espn(from_utc: datetime, hours: int = 24) -> list[dict]:
     """
-    Fetch WC fixtures for il_date (YYYY-MM-DD in Israel time).
-    Checks both il_date and il_date-1 in ESPN's ET grouping, since games
-    happening after midnight IL can fall on the previous day in US Eastern.
+    Fetch WC fixtures in the window [from_utc, from_utc + hours].
+    Queries ESPN for the ET dates that overlap the window (today + next 2 days),
+    so games are never missed due to timezone offsets.
     """
-    target = datetime.strptime(il_date, "%Y-%m-%d")
-    dates_to_check = [
-        (target - timedelta(days=1)).strftime("%Y%m%d"),
-        target.strftime("%Y%m%d"),
-    ]
+    until_utc = from_utc + timedelta(hours=hours)
+    # Collect all ET dates that might contain games in our window
+    dates_to_check: list[str] = []
+    for offset in range(3):
+        d = (from_utc - timedelta(hours=4) + timedelta(days=offset)).strftime("%Y%m%d")
+        if d not in dates_to_check:
+            dates_to_check.append(d)
 
     result = []
+    seen: set[str] = set()
     for date_nodash in dates_to_check:
         url = f"{ESPN_BASE}?dates={date_nodash}"
         try:
@@ -226,26 +229,32 @@ def get_fixtures_from_espn(il_date: str) -> list[dict]:
             if not home_name or not away_name:
                 continue
 
-            # comp.date is ISO-8601 UTC, e.g. "2026-06-21T16:00Z"
             raw_date = comp.get("date") or ev.get("date") or ""
             try:
-                utc_dt  = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
-                il_dt   = utc_dt.astimezone(ISRAEL_TZ)
-                # Only include games that fall on the requested IL date
-                if il_dt.strftime("%Y-%m-%d") != il_date:
-                    continue
-                il_time = il_dt.strftime("%H:%M")
-                et_dt   = utc_dt.astimezone(US_EASTERN)
-                et_time = et_dt.strftime("%H:%M")
+                utc_dt = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
             except Exception:
-                il_time = et_time = "??:??"
+                continue
+
+            # Only include games within the requested time window
+            if not (from_utc <= utc_dt < until_utc):
+                continue
+
+            key = f"{home_name}|{away_name}|{raw_date}"
+            if key in seen:
+                continue
+            seen.add(key)
+
+            il_dt   = utc_dt.astimezone(ISRAEL_TZ)
+            il_time = il_dt.strftime("%H:%M")
+            et_dt   = utc_dt.astimezone(US_EASTERN)
+            et_time = et_dt.strftime("%H:%M")
 
             result.append({
                 "home":     home_name,
                 "away":     away_name,
                 "il_time":  il_time,
                 "et_time":  et_time,
-                "sort_key": _time_to_sort(il_time),
+                "sort_key": utc_dt.timestamp(),
             })
 
     result.sort(key=lambda x: x["sort_key"])
@@ -414,7 +423,18 @@ Examples:
             "  Then re-run the script."
         )
 
-    target_date = args.date or datetime.now(ISRAEL_TZ).strftime("%Y-%m-%d")
+    # Determine the start of the 24h window (UTC)
+    if args.date:
+        # Treat supplied date as the start of that IL calendar day (00:00 IL → UTC)
+        il_midnight = datetime.strptime(args.date, "%Y-%m-%d").replace(
+            tzinfo=ISRAEL_TZ
+        )
+        window_start_utc = il_midnight.astimezone(timezone.utc)
+        target_date = args.date
+    else:
+        # Default: next 24 hours from right now
+        window_start_utc = datetime.now(timezone.utc)
+        target_date = datetime.now(ISRAEL_TZ).strftime("%Y-%m-%d")
 
     # Resolve fixtures
     if args.matches:
@@ -422,11 +442,11 @@ Examples:
         if not fixtures:
             sys.exit("No valid matches parsed from --matches.")
     else:
-        print(f"Fetching WC fixtures for {target_date} from ESPN…", file=sys.stderr)
-        fixtures = get_fixtures_from_espn(target_date)
+        print(f"Fetching WC fixtures (next 24h from {window_start_utc.strftime('%Y-%m-%d %H:%M')} UTC) from ESPN…", file=sys.stderr)
+        fixtures = get_fixtures_from_espn(window_start_utc, hours=24)
         if not fixtures:
             print(
-                f"\nNo fixtures found for {target_date} via ESPN.\n"
+                f"\nNo fixtures found in the next 24h via ESPN.\n"
                 "Override manually if needed:\n"
                 f'  python scripts/league-matchups.py {target_date} \\\n'
                 '    --matches "20:00 Team A vs Team B, 23:00 Team C vs Team D"\n',
