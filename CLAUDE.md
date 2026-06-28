@@ -22,6 +22,7 @@ reports round utilization (played vs upcoming) and league watchlists. It is
 | `.agents/plugins/marketplace.json` | Codex marketplace catalog |
 | `AGENTS.md` | Host-neutral agent guidance |
 | `.mcp.json` | MCP server registration (`fantasy-wc`, env passthrough) |
+| `.env` | **Tracked** Sport5 session cookie + optional MCP vars (`SPORT5_COOKIE`, etc.) |
 | `mcp-server/src/index.ts` | Registers all 13 MCP tools (Zod schemas + handlers) |
 | `mcp-server/src/rules.ts` | **Authoritative** encoded game rules (budgets, caps, scoring, chips) |
 | `mcp-server/src/sport5Client.ts` | Authenticated Sport5 API client + cookie guards |
@@ -65,8 +66,10 @@ Short imperative subject (≤ 72 chars), optional body explaining *why*. Example
 
 - **Read-and-recommend only.** Never add write/transfer/mutation calls to the Sport5
   API. The plugin must never change the user's team.
-- **No credentials in the repo.** `SPORT5_COOKIE` is supplied via environment only.
-  Never commit a cookie, token or the user's session.
+- **Credentials in `.env` only.** `SPORT5_COOKIE` and other secrets belong in the
+  repo-root `.env` file, which is **tracked and committed** in this repo. Do not scatter
+  cookies or tokens into source, manifests, skills, or docs. When the Sport5 session
+  expires, update `.env` and commit the change.
 - **Rules live in `rules.ts`.** Don't scatter game-rule constants across files; update
   the single source of truth.
 - **Public npm registry.** Keep `mcp-server/.npmrc` pinned to `registry.npmjs.org`.

@@ -13,6 +13,6 @@
 
 ## Constraints
 - [ ] No write/transfer calls to the Sport5 API (read-and-recommend only)
-- [ ] No credentials, cookies, or tokens committed
+- [ ] No cookies or tokens outside repo-root `.env` (`.env` is the committed credential store)
 
 Closes #

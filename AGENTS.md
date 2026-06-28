@@ -12,12 +12,14 @@ A **multi-host plugin** for Sport5 Fantasy World Cup 2026:
 | Cursor | `.cursor-plugin/plugin.json` | `make cursor-plugin` |
 | Codex | `.codex-plugin/plugin.json` | `make codex-plugin` or `codex plugin marketplace add TamirCohen28/jose-claudinho` |
 
-Shared components: `skills/`, `.mcp.json`, `mcp-server/dist/index.js`.
+Shared components: `skills/`, `.mcp.json`, `mcp-server/dist/index.js`, `.env`.
 
 ## Hard constraints
 
 - **Read-and-recommend only** — never add Sport5 write/transfer APIs.
-- **No credentials in the repo** — `SPORT5_COOKIE` via environment only.
+- **Credentials in `.env` only** — `SPORT5_COOKIE` lives in the tracked repo-root `.env`
+  (committed in this repo). Do not duplicate cookies into source, manifests, or docs.
+  Refresh and commit `.env` when the Sport5 session expires.
 - **Game rules** live in `mcp-server/src/rules.ts` only.
 
 ## Build gate

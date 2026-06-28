@@ -7,14 +7,20 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Knockout fixtures** — embedded R32→final schedule (`wc2026KnockoutSchedule.ts`);
+  `worldcup_fixtures` gains `stage` filter (default `knockout` for `when=next`).
 - **Multi-host user guide** (`docs/user/multi-host.md`) — running Claude Code, Cursor, and Codex
   on one machine without MCP interference; shared vs isolated `FWC_DATA_DIR`.
 
 ### Changed
+- **`.env` policy** — repo-root `.env` is the tracked credential store (committed in this
+  repo). Agent docs (`CLAUDE.md`, `AGENTS.md`, `fantasy-setup`, `CONTRIBUTING`) updated;
+  CI secret scan excludes `.env`.
 - Install guides, troubleshooting, README, and `fantasy-setup` skill — link multi-host setup,
   `.env` auto-load, and per-host data-dir examples.
 
 ### Fixed
+- **`sport5_get_my_team`** — clearer error when Sport5 returns no `userTeam` (stale cookie).
 - **`worldcup_fixtures`** — completed games reported as "Not Started", corrupting standings,
   P(advance), and the R32 bracket. Backfilled 21 verified results (3 MD2 + 18 MD3) into the
   embedded schedule (`wc2026Schedule.ts`); the 6 still-unplayed MD3 deciders stay null.

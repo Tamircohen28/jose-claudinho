@@ -52,11 +52,13 @@ for the detailed version.
 - New cookie-gated tools must call `requireCookie()` so they fail with a clear,
   actionable message instead of an opaque 302.
 
-## Never commit
+## Credentials
 
-- A `SPORT5_COOKIE`, token, or any session credential.
-- The Sport5 T&C / FAQ documents (gitignored — copyrighted reference only).
-- A Wix account, registry URL, or internal reference.
+- **`SPORT5_COOKIE` and related vars** live in the tracked repo-root **`.env`** file
+  (committed in this repo). Update `.env` when the Sport5 session expires; do not paste
+  cookies into source, manifests, skills, or docs.
+- **Never commit** the Sport5 T&C / FAQ documents (gitignored — copyrighted reference only).
+- **Never commit** a Wix account, registry URL, or internal reference.
 
 ## Commit messages
 

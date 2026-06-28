@@ -8,6 +8,12 @@
 
 import { envOr } from "./env.js";
 import { WC2026_GROUP_FIXTURES, type Wc2026GroupFixture } from "./wc2026Schedule.js";
+import {
+  WC2026_KNOCKOUT_FIXTURES,
+  resolveKnockoutBracket,
+  type Wc2026KnockoutFixture,
+  type KnockoutStage,
+} from "./wc2026KnockoutSchedule.js";
 
 function key(): string {
   return envOr("SPORTSDB_KEY", "3");
@@ -30,6 +36,8 @@ export interface SlimFixture {
   id: string;
   name: string;
   round: string | null;
+  /** Knockout stage key when not group (r32, r16, qf, sf, final). */
+  stage?: string | null;
   date: string | null;
   time: string | null;
   homeTeam: string | null;
@@ -109,6 +117,7 @@ function officialToSlim(f: Wc2026GroupFixture): SlimFixture {
     id: f.matchNumber != null ? `wc2026-m${f.matchNumber}` : `wc2026-${f.date}-${normTeam(f.homeTeam)}`,
     name: `${f.homeTeam} vs ${f.awayTeam}`,
     round: String(f.round),
+    stage: "group",
     date: f.date,
     time: null,
     homeTeam: f.homeTeam,
@@ -117,6 +126,24 @@ function officialToSlim(f: Wc2026GroupFixture): SlimFixture {
     awayScore: f.awayScore,
     status: played ? "Match Finished" : "Not Started",
     venue: null,
+  };
+}
+
+function knockoutToSlim(f: Wc2026KnockoutFixture): SlimFixture {
+  const played = f.homeScore != null && f.awayScore != null;
+  return {
+    id: `wc2026-m${f.matchNumber}`,
+    name: `${f.homeTeam} vs ${f.awayTeam}`,
+    round: String(f.round),
+    stage: f.stage,
+    date: f.date,
+    time: f.time,
+    homeTeam: f.homeTeam,
+    awayTeam: f.awayTeam,
+    homeScore: f.homeScore,
+    awayScore: f.awayScore,
+    status: played ? "Match Finished" : "Not Started",
+    venue: f.venue,
   };
 }
 
@@ -158,6 +185,14 @@ function mergeSportsDbIntoOfficial(official: SlimFixture[], sportsDb: SlimFixtur
 
 function officialGroupFixtures(): SlimFixture[] {
   return WC2026_GROUP_FIXTURES.map(officialToSlim);
+}
+
+function officialKnockoutFixtures(): SlimFixture[] {
+  return resolveKnockoutBracket(WC2026_KNOCKOUT_FIXTURES).map(knockoutToSlim);
+}
+
+function officialAllFixtures(): SlimFixture[] {
+  return [...officialGroupFixtures(), ...officialKnockoutFixtures()];
 }
 
 async function getJson(url: string): Promise<any> {
@@ -205,19 +240,38 @@ async function fetchSportsDbFixtures(): Promise<SlimFixture[]> {
  *  - "past": recently played matches
  *  - "all": the whole season's events
  *
- * Group stage uses the embedded official 72-fixture schedule; TheSportsDB enriches scores.
+ * Group + knockout schedules are embedded (official FIFA draw); TheSportsDB
+ * enriches scores when available (often empty for knockout on the free tier).
  */
 export async function getFixtures(opts: {
   when?: "next" | "past" | "all";
   limit?: number;
   teamContains?: string;
+  /** Group MD 1–3, or knockout bucket 4–7 (TheSportsDB convention). */
   round?: number;
+  /** Filter by stage: group, r32, r16, qf, sf, final, knockout (all KO), or all. */
+  stage?: "group" | KnockoutStage | "knockout" | "all";
 }): Promise<{ source: string; count: number; fixtures: SlimFixture[]; note?: string }> {
   const when = opts.when || "next";
   const limit = opts.limit ?? 20;
+  const stageFilter = opts.stage ?? "all";
 
   const sportsDb = await fetchSportsDbFixtures();
-  let fixtures = mergeSportsDbIntoOfficial(officialGroupFixtures(), sportsDb);
+  let fixtures: SlimFixture[];
+
+  if (stageFilter === "group") {
+    fixtures = mergeSportsDbIntoOfficial(officialGroupFixtures(), sportsDb);
+  } else if (stageFilter === "knockout") {
+    fixtures = mergeSportsDbIntoOfficial(officialKnockoutFixtures(), sportsDb);
+  } else if (stageFilter === "all") {
+    fixtures = mergeSportsDbIntoOfficial(officialAllFixtures(), sportsDb);
+  } else {
+    // Single knockout stage (e.g. r32, r16, final)
+    const ko = resolveKnockoutBracket(
+      WC2026_KNOCKOUT_FIXTURES.filter((f) => f.stage === stageFilter)
+    ).map(knockoutToSlim);
+    fixtures = mergeSportsDbIntoOfficial(ko, sportsDb);
+  }
 
   if (opts.round != null) {
     fixtures = fixtures.filter((f) => String(f.round) === String(opts.round));
@@ -245,10 +299,15 @@ export async function getFixtures(opts: {
   });
 
   const source =
-    `official-wc2026-group (${WC2026_GROUP_FIXTURES.length} fixtures)` +
+    `official-wc2026 (group ${WC2026_GROUP_FIXTURES.length} + knockout ${WC2026_KNOCKOUT_FIXTURES.length})` +
     (sportsDb.length ? ` + TheSportsDB (${sportsDb.length} live)` : "");
 
-  return { source, count: fixtures.length, fixtures: fixtures.slice(0, limit) };
+  const note =
+    stageFilter === "group" && when === "next" && fixtures.length === 0
+      ? "Group stage complete. Use stage=r32 (or stage=knockout) for Round of 32 fixtures."
+      : undefined;
+
+  return { source, count: fixtures.length, fixtures: fixtures.slice(0, limit), note };
 }
 
 const PLAYED_STATUSES = new Set([
@@ -280,10 +339,10 @@ export function isFixturePlayed(f: SlimFixture): boolean {
   return false;
 }
 
-/** Fetch the full group-stage fixture list (no limit). */
+/** Fetch the full fixture list (group + knockout, no limit). */
 export async function getAllFixtures(): Promise<SlimFixture[]> {
   const sportsDb = await fetchSportsDbFixtures();
-  return mergeSportsDbIntoOfficial(officialGroupFixtures(), sportsDb);
+  return mergeSportsDbIntoOfficial(officialAllFixtures(), sportsDb);
 }
 
 /** Group fixtures into matchday buckets by unique date (sorted chronologically). */
