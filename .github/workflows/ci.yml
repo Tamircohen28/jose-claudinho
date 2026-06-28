@@ -57,6 +57,7 @@ jobs:
               -e 'gh[pousr]_[A-Za-z0-9]{20,}' \
               -e 'AKIA[0-9A-Z]{16}' \
               --include='*.ts' --include='*.js' --include='*.json' --include='*.md' \
+              --exclude='.env' \
               --exclude-dir=node_modules --exclude-dir=dist . ; then
             echo "::error::Potential secret found in source. Remove it before merging."
             exit 1

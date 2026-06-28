@@ -326,20 +326,31 @@ server.registerTool(
 );
 
 // ----------------------------------------------------------------------------
-// 6. World Cup fixtures (TheSportsDB).
+// 6. World Cup fixtures (embedded official schedule + optional TheSportsDB scores).
 // ----------------------------------------------------------------------------
 server.registerTool(
   "worldcup_fixtures",
   {
     title: "World Cup fixtures",
     description:
-      "Get World Cup 2026 group-stage fixtures/results. Uses the official 72-match " +
-      "schedule (MD1–MD3) with live scores from TheSportsDB when available. " +
-      "when=next (upcoming), past (results), or all. Optional round (1/2/3) and " +
-      "team-name filter. External team names won't map cleanly to Hebrew Sport5 names.",
+      "Get World Cup 2026 fixtures/results. Uses embedded official schedules for " +
+      "group stage (MD1–MD3) and knockout (R32→final); TheSportsDB enriches scores " +
+      "when available (often empty for knockout). when=next|past|all. stage=group|r32|r16|qf|sf|third|final|" +
+      "knockout|all (default knockout for next). " +
+      "Optional round (1–3 group, 4=R32, 5=R16, 6=QF, 7=SF/final) and team filter.",
     inputSchema: {
       when: z.enum(["next", "past", "all"]).optional().describe("Which fixtures (default next)."),
-      round: z.number().int().min(1).max(3).optional().describe("Group-stage matchday 1, 2, or 3."),
+      stage: z
+        .enum(["group", "r32", "r16", "qf", "sf", "third", "final", "knockout", "all"])
+        .optional()
+        .describe("Tournament stage filter (default: knockout for next; all for past/all)."),
+      round: z
+        .number()
+        .int()
+        .min(1)
+        .max(7)
+        .optional()
+        .describe("Matchday 1–3 (group) or knockout bucket 4–7."),
       limit: z.number().int().min(1).max(100).optional().describe("Max fixtures (default 20)."),
       teamContains: z.string().optional().describe("Filter to fixtures involving a team name substring."),
     },
@@ -347,20 +358,26 @@ server.registerTool(
   },
   async (args) => {
     try {
+      const when = args.when ?? "next";
+      const stage =
+        args.stage ??
+        (when === "next" ? "knockout" : "all");
       const res = await getFixtures({
-        when: args.when,
+        when,
+        stage,
         round: args.round,
         limit: args.limit,
         teamContains: args.teamContains,
       });
       const summary =
+        `${res.source}\n` +
         (res.note ? res.note + "\n" : "") +
         res.fixtures
           .map(
             (f) =>
               `${f.date ?? "?"} ${f.time ?? ""} — ${f.homeTeam ?? "?"} ${
                 f.homeScore ?? "vs"
-              } ${f.awayScore ?? ""} ${f.awayTeam ?? "?"}${f.round ? ` (R${f.round})` : ""}`
+              } ${f.awayScore ?? ""} ${f.awayTeam ?? "?"}${f.stage ? ` [${f.stage}]` : f.round ? ` (R${f.round})` : ""}`
           )
           .join("\n");
       return result(res, summary || res.note || "No fixtures.");
@@ -1143,7 +1160,7 @@ server.registerTool(
       // Resolve match dates: use args or pull from upcoming fixtures
       let dates = args.matchDates ?? [];
       if (dates.length === 0) {
-        const fixtureRes = await getFixtures({ when: "next", limit: 30 });
+        const fixtureRes = await getFixtures({ when: "next", stage: "knockout", limit: 30 });
         const seen = new Set<string>();
         for (const f of fixtureRes.fixtures) {
           if (f.date && !seen.has(f.date)) {

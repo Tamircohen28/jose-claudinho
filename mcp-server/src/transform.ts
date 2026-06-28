@@ -96,7 +96,14 @@ export function flattenMarket(data: any[]): any[] {
 
 /** Shape a full userTeam payload into a structured squad summary. */
 export function summarizeTeam(data: any) {
-  const team = data.userTeam;
+  const team = data?.userTeam;
+  if (!team) {
+    throw new Error(
+      "Sport5 returned no userTeam — your SPORT5_COOKIE may be missing, expired, or overridden " +
+        "by a stale shell env var. Update repo-root .env and restart MCP (or remove SPORT5_COOKIE " +
+        "from .cursor/mcp.json env so loadWorkspaceEnv can read .env)."
+    );
+  }
   const entries = (team.userTeamPlayers || []).filter(
     (e: any) => !e.isRemoved
   );
