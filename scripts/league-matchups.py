@@ -195,49 +195,58 @@ def _time_to_sort(il_time: str) -> float:
 
 # ── ESPN fixtures (auto-detect) ────────────────────────────────────────────────
 
-def get_fixtures_from_espn(target_date: str) -> list[dict]:
+def get_fixtures_from_espn(il_date: str) -> list[dict]:
     """
-    Fetch WC fixtures for target_date from ESPN's public scoreboard API.
-    target_date is YYYY-MM-DD in US Eastern; ESPN groups games by that ET date.
-    Returns fixtures sorted by Israel kickoff time.
+    Fetch WC fixtures for il_date (YYYY-MM-DD in Israel time).
+    Checks both il_date and il_date-1 in ESPN's ET grouping, since games
+    happening after midnight IL can fall on the previous day in US Eastern.
     """
-    date_nodash = target_date.replace("-", "")
-    url = f"{ESPN_BASE}?dates={date_nodash}"
-    try:
-        data = _fetch_json(url)
-    except Exception as e:
-        print(f"[warn] ESPN fetch failed: {e}", file=sys.stderr)
-        return []
+    target = datetime.strptime(il_date, "%Y-%m-%d")
+    dates_to_check = [
+        (target - timedelta(days=1)).strftime("%Y%m%d"),
+        target.strftime("%Y%m%d"),
+    ]
 
     result = []
-    for ev in (data.get("events") or []):
-        comp = (ev.get("competitions") or [{}])[0]
-        teams = comp.get("competitors") or []
-        home = next((t for t in teams if t.get("homeAway") == "home"), {})
-        away = next((t for t in teams if t.get("homeAway") == "away"), {})
-        home_name = (home.get("team") or {}).get("displayName") or ""
-        away_name = (away.get("team") or {}).get("displayName") or ""
-        if not home_name or not away_name:
+    for date_nodash in dates_to_check:
+        url = f"{ESPN_BASE}?dates={date_nodash}"
+        try:
+            data = _fetch_json(url)
+        except Exception as e:
+            print(f"[warn] ESPN fetch failed for {date_nodash}: {e}", file=sys.stderr)
             continue
 
-        # comp.date is ISO-8601 UTC, e.g. "2026-06-21T16:00Z"
-        raw_date = comp.get("date") or ev.get("date") or ""
-        try:
-            utc_dt  = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
-            il_dt   = utc_dt.astimezone(ISRAEL_TZ)
-            et_dt   = utc_dt.astimezone(US_EASTERN)
-            il_time = il_dt.strftime("%H:%M")
-            et_time = et_dt.strftime("%H:%M")
-        except Exception:
-            il_time = et_time = "??:??"
+        for ev in (data.get("events") or []):
+            comp = (ev.get("competitions") or [{}])[0]
+            teams = comp.get("competitors") or []
+            home = next((t for t in teams if t.get("homeAway") == "home"), {})
+            away = next((t for t in teams if t.get("homeAway") == "away"), {})
+            home_name = (home.get("team") or {}).get("displayName") or ""
+            away_name = (away.get("team") or {}).get("displayName") or ""
+            if not home_name or not away_name:
+                continue
 
-        result.append({
-            "home":     home_name,
-            "away":     away_name,
-            "il_time":  il_time,
-            "et_time":  et_time,
-            "sort_key": _time_to_sort(il_time),
-        })
+            # comp.date is ISO-8601 UTC, e.g. "2026-06-21T16:00Z"
+            raw_date = comp.get("date") or ev.get("date") or ""
+            try:
+                utc_dt  = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+                il_dt   = utc_dt.astimezone(ISRAEL_TZ)
+                # Only include games that fall on the requested IL date
+                if il_dt.strftime("%Y-%m-%d") != il_date:
+                    continue
+                il_time = il_dt.strftime("%H:%M")
+                et_dt   = utc_dt.astimezone(US_EASTERN)
+                et_time = et_dt.strftime("%H:%M")
+            except Exception:
+                il_time = et_time = "??:??"
+
+            result.append({
+                "home":     home_name,
+                "away":     away_name,
+                "il_time":  il_time,
+                "et_time":  et_time,
+                "sort_key": _time_to_sort(il_time),
+            })
 
     result.sort(key=lambda x: x["sort_key"])
     return result
@@ -405,7 +414,7 @@ Examples:
             "  Then re-run the script."
         )
 
-    target_date = args.date or datetime.now(US_EASTERN).strftime("%Y-%m-%d")
+    target_date = args.date or datetime.now(ISRAEL_TZ).strftime("%Y-%m-%d")
 
     # Resolve fixtures
     if args.matches:
