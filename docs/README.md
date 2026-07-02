@@ -15,6 +15,8 @@ The doc map. Start with the row that matches who you are.
 
 - **[user/](user/)** — for people using the plugin to manage their fantasy team.
 - **[engineering/](engineering/)** — for people changing the code.
+- **[reference/](reference/)** — the official game rules ([English](reference/rules-en.md), [Hebrew](reference/rules-he.md)).
+- **[agent-guidelines/](agent-guidelines/)** — testing, security, and style guidance for AI agents.
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — how to propose changes.
 - **[../CHANGELOG.md](../CHANGELOG.md)** — what changed, version by version.
 

@@ -7,6 +7,9 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Repo standards pass** — `.github/CODEOWNERS`, canonical `docs/CHANGELOG.md` pointer,
+  `docs/reference/` for the game-rules docs, and an `agent:check` validate script
+  (`typecheck` + `build`) in `mcp-server/package.json`.
 - **Knockout fixtures** — embedded R32→final schedule (`wc2026KnockoutSchedule.ts`);
   `worldcup_fixtures` gains `stage` filter (default `knockout` for `when=next`).
 - **Multi-host user guide** (`docs/user/multi-host.md`) — running Claude Code, Cursor, and Codex
