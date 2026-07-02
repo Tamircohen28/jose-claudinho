@@ -83,4 +83,5 @@ agent-check: ## Validate agent setup: drift check + manifests + typecheck
 		echo "Validating $$f"; \
 		python3 -c "import json,sys; json.load(open('$$f'))" || exit 1; \
 	done
+	bash scripts/check-manifest-version-alignment.sh .
 	cd $(MCP) && npm run typecheck

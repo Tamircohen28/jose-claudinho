@@ -34,6 +34,15 @@ jobs:
           npm run build
           test -f dist/index.js
 
+      - name: Validate manifests agree with each other and with the release input
+        run: |
+          bash scripts/check-manifest-version-alignment.sh . --manifests-only
+          MANIFEST_VER=$(jq -r .version .claude-plugin/plugin.json)
+          if [[ "$MANIFEST_VER" != "${{ inputs.version }}" ]]; then
+            echo "::error::plugin.json version ($MANIFEST_VER) does not match release input (${{ inputs.version }}) — bump manifests in a PR first, then release that exact version"
+            exit 1
+          fi
+
       - name: Create tag
         run: |
           git config user.name "github-actions[bot]"
