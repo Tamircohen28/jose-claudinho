@@ -34,6 +34,14 @@ Commit `mcp-server/dist/index.js` after any `mcp-server/src/` change.
 
 Hosts prefix tools differently. See `skills/shared/references/mcp-tool-names.md`.
 
+## Agent guidelines
+
+- [Testing](docs/agent-guidelines/testing.md) — the typecheck + build correctness gate.
+- [Security](docs/agent-guidelines/security.md) — read-only, `.env` policy, secret scan.
+- [Style](docs/agent-guidelines/style.md) — code layout and commit conventions.
+
+Run `make agent-check` to validate agent setup (drift + manifests + typecheck) — CI mirrors this.
+
 ## User docs
 
 - [Claude Code install](docs/user/install/claude-code.md)
