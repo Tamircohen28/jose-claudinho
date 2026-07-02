@@ -1,0 +1,18 @@
+---
+description: Project-wide guidance for José Claudinho — canonical rules live in AGENTS.md.
+globs:
+alwaysApply: true
+---
+
+# José Claudinho — Cursor project rules
+
+This file is a **thin adapter**. The canonical, host-neutral agent guidance is
+[AGENTS.md](../../AGENTS.md) at the repo root — read it first. Do not duplicate
+policy text here; update `AGENTS.md` instead.
+
+Key hard constraints (see AGENTS.md for the full list):
+
+- **Read-and-recommend only** — never add Sport5 write/transfer APIs.
+- **Credentials in the tracked `.env` only** — never scatter cookies into source or docs.
+- **Game rules live in `mcp-server/src/rules.ts`** — single source of truth.
+- **Build gate:** `cd mcp-server && npm run typecheck && npm run build`; commit `dist/index.js`.

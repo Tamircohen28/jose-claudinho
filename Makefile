@@ -5,7 +5,9 @@ MCP         := mcp-server
 PLUGIN      := jose-claudinho
 MARKETPLACE := jose-claudinho
 
-.PHONY: help install typecheck build clean bundle plugin cursor-plugin codex-plugin hooks
+.PHONY: help install typecheck build clean bundle plugin cursor-plugin codex-plugin hooks agent-check
+
+MANIFESTS := .claude-plugin/plugin.json .cursor-plugin/plugin.json .codex-plugin/plugin.json .mcp.json .agents/plugins/marketplace.json $(MCP)/package.json
 
 CURSOR_PLUGIN_DIR := $(HOME)/.cursor/plugins/local/$(PLUGIN)
 
@@ -73,3 +75,12 @@ codex-plugin: bundle ## Register repo marketplace with Codex CLI (if installed)
 hooks: ## Enable the local git hooks (blocks direct pushes to main)
 	git config core.hooksPath .githooks
 	@echo "✓ core.hooksPath = .githooks — direct pushes to main are now blocked locally."
+
+# Canonical agent-validation gate (a.k.a. agent:check). CI mirrors this target.
+agent-check: ## Validate agent setup: drift check + manifests + typecheck
+	bash scripts/check-agent-drift.sh
+	@for f in $(MANIFESTS); do \
+		echo "Validating $$f"; \
+		python3 -c "import json,sys; json.load(open('$$f'))" || exit 1; \
+	done
+	cd $(MCP) && npm run typecheck

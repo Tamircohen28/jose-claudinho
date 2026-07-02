@@ -43,6 +43,20 @@ jobs:
       - name: Verify bundle exists
         run: test -f dist/index.js
 
+  agents:
+    name: Agent setup validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mcp-server/package-lock.json
+      - run: cd mcp-server && npm ci
+      - name: Validate agent setup (drift + manifests + typecheck)
+        run: make agent-check
+
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-latest
