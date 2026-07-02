@@ -31,7 +31,7 @@ stores and analyzes data, then hands a plan to the user.
         ┌────────────────────────────────────┼────────────────────────────┐
         │            mcp-server (dist/index.js, esbuild bundle)            │
         │                                    │                             │
-        │  index.ts  ── registers 13 tools (Zod in, structuredContent out) │
+        │  index.ts  ── registers 21 tools (Zod in, structuredContent out) │
         │     │                                                            │
         │     ├─ rules.ts           get_game_rules                         │
         │     ├─ sport5Client.ts    s5get(), requireCookie(), pool()      │

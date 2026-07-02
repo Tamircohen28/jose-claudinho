@@ -60,7 +60,7 @@ Restart Codex after env changes. Full guide: [multi-host.md](../multi-host.md).
 - Skills: `squad-advice`, `league-round-report`, etc. (`disable-model-invocation: true` — invoke the slash command or via `@` mention).
 - MCP tools appear as **`mcp__fantasy-wc__<tool>`**.
 
-See [mcp-tool-names.md](../../skills/shared/references/mcp-tool-names.md).
+See [mcp-tool-names.md](../../../skills/shared/references/mcp-tool-names.md).
 
 ## Update
 

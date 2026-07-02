@@ -23,7 +23,7 @@ reports round utilization (played vs upcoming) and league watchlists. It is
 | `AGENTS.md` | Host-neutral agent guidance |
 | `.mcp.json` | MCP server registration (`fantasy-wc`, env passthrough) |
 | `.env` | **Tracked** Sport5 session cookie + optional MCP vars (`SPORT5_COOKIE`, etc.) |
-| `mcp-server/src/index.ts` | Registers all 13 MCP tools (Zod schemas + handlers) |
+| `mcp-server/src/index.ts` | Registers all 21 MCP tools (Zod schemas + handlers) |
 | `mcp-server/src/rules.ts` | **Authoritative** encoded game rules (budgets, caps, scoring, chips) |
 | `mcp-server/src/sport5Client.ts` | Authenticated Sport5 API client + cookie guards |
 | `mcp-server/src/transform.ts` | Raw API → slim DTO transforms |
