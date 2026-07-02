@@ -91,6 +91,11 @@ All notable changes to this project are documented here. The format follows
 - `PlayerRateOverrides` interface in `scoring.ts` — formal contract for per-player EV
   parameter overrides; `derivePlayerRates()` helper in `playerMapping.ts` converts lineup
   confidence → rate overrides.
+- **`provide-wc-plan` skill** — full-season roadmap covering every transfer window, chip
+  calendar (correct early-deployment strategy), captaincy by stage, formation advice, and
+  penalty-taker targeting through the Final.
+- **`get_penalty_takers` MCP tool** — static registry of known WC 2026 penalty takers per
+  nation (21 nations covered, primary + backup player IDs).
 
 ### Changed
 - `squad-advice` skill updated to call `optimize_squad` as an MILP shortcut in Step 6,
@@ -98,6 +103,14 @@ All notable changes to this project are documented here. The format follows
 - `bracketPredictor.ts` — KO advancement probabilities now strength-adjusted via
   `estimateKoWinProb()`; `simulateTournamentPaths()` exported for external callers.
 - `mcp-server/package.json` — added `highs` v1.14.2 (HiGHS WASM MILP solver).
+- `scripts/league-matchups.py` — refactored to WhatsApp-formatted output (bold/italic
+  markers, one line per player across owning teams, `[B]`/`[C1]`/`[C2]` bench/captain
+  tags) with `.txt` file export.
+
+### Fixed
+- **`worldcup_fixtures`** — `when=all` queries returning fewer than 10 results now
+  combine the past+next endpoints to supplement the incomplete season endpoint (was
+  returning only 5 fixtures for full-season queries).
 
 ## [1.3.0] - 2026-06-22
 
@@ -113,6 +126,31 @@ All notable changes to this project are documented here. The format follows
   `user-invocable: false` flag — preserving user-only invocation with no behavior change.
 
 ### Added
+- **EV/rules engine** — `scoring.ts`: probabilistic EV engine (per-fixture expected points
+  for goals/assists/CS/cards/penalties, squad EV aggregation, transfer evaluator, chip
+  timing heuristics, deterministic `computeExactScore()`); `bracketPredictor.ts`: group
+  standings from fixture results, P(advance) per team, R32 matchup predictions via FIFA
+  bracket seeding with head-to-head tiebreaking; `docs/rules-he.md`/`docs/rules-en.md`
+  canonical rules docs (now under `docs/reference/`).
+- Three new MCP tools: `compute_squad_ev` (EV breakdown per player + chip advice),
+  `predict_bracket_matchups` (group standings → R32 predictions), `rank_transfer_candidates`
+  (feasible swaps ranked by EV gain).
+- **`transfer-optimizer` skill** — 12-step transfer optimizer with mathematical foundation
+  and output format; transfer-window-closed detection; fixture-difficulty tiering.
+- **`multi-agent-squad-debate` skill** (renamed `squad-debate` this release) — 5-phase
+  debate (Conservative / Aggressive / Value agents → debate → synthesis verdict).
+- **`league-next24h-matchups` skill** — WC matches kicking off in the next 24h (Israel
+  time) with per-game breakdown of which league teams own players on each side.
+- **Real-time availability integration** — `get_player_availability` (API-Football, 6h
+  cache) and `get_lineup_predictions` (FotMob/RotoWire/365scores consensus, 2h cache)
+  MCP tools; `compute_squad_ev` applies injured/suspended (EV=0), doubtful (EV×0.4), and
+  predicted-non-starter (bench) overrides from live data.
+- `scripts/league-matchups.py` — standalone daily WC match ownership report (per-match
+  breakdown of which league squads own players on each side), ESPN fixture source.
+- Richer competitive intelligence in `league-round-utilization` (round phase
+  classification, pacing bands, opportunity/risk flags, personalised narrative),
+  `team-round-utilization`, and `league-watchlist` (tiered 🔥/⭐ interest classification,
+  captain radar callout).
 - `snapshot-league` and `fantasy-setup` skills (previously command-only).
 
 ### Removed
