@@ -50,7 +50,7 @@ you a concrete plan; you apply it in the app.
 
 | Type | Name | Purpose |
 |------|------|---------|
-| MCP server | `fantasy-wc` | 20 tools over the Sport5 API + TheSportsDB fixtures + local snapshots |
+| MCP server | `fantasy-wc` | 21 tools over the Sport5 API + TheSportsDB fixtures + local snapshots |
 | Skill | `squad-advice` | Produce this round's transfer/captain/lineup plan (`/squad-advice`) |
 | Skill | `squad-debate` | Three strategy agents debate, then synthesise a verdict (`/squad-debate`) |
 | Skill | `transfer-optimizer` | EV-grounded transfer & lineup optimizer (`/transfer-optimizer`) |

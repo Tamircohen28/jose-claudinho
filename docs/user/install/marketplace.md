@@ -11,7 +11,7 @@ Users install from GitHub:
 codex plugin marketplace add TamirCohen28/jose-claudinho
 ```
 
-Catalog: [`.agents/plugins/marketplace.json`](../../.agents/plugins/marketplace.json).
+Catalog: [`.agents/plugins/marketplace.json`](../../../.agents/plugins/marketplace.json).
 
 Official Codex Plugin Directory self-serve publishing is coming soon per OpenAI docs.
 
@@ -19,7 +19,7 @@ Official Codex Plugin Directory self-serve publishing is coming soon per OpenAI 
 
 After local testing (`make cursor-plugin`):
 
-1. Ensure [`.cursor-plugin/plugin.json`](../../.cursor-plugin/plugin.json) and README are complete.
+1. Ensure [`.cursor-plugin/plugin.json`](../../../.cursor-plugin/plugin.json) and README are complete.
 2. Submit the public repo at [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish).
 3. Expect manual security review; plugin must be open source.
 

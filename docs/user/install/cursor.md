@@ -49,12 +49,12 @@ slash-invocable. Invoke explicitly:
 ```
 
 MCP tools appear as **`mcp__fantasy-wc__<tool>`** (not the Claude Code prefix).
-See [mcp-tool-names.md](../../skills/shared/references/mcp-tool-names.md).
+See [mcp-tool-names.md](../../../skills/shared/references/mcp-tool-names.md).
 
 ## Option B — MCP only (repo workspace)
 
 If you clone this repo and open it in Cursor, [`.cursor/mcp.json`](../../../.cursor/mcp.json)
-registers the MCP server without installing the full plugin bundle. You get all 13 tools
+registers the MCP server without installing the full plugin bundle. You get all 21 tools
 but must invoke skills manually or describe workflows in chat.
 
 ```bash
