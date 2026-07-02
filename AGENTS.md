@@ -30,6 +30,15 @@ cd mcp-server && npm run typecheck && npm run build
 
 Commit `mcp-server/dist/index.js` after any `mcp-server/src/` change.
 
+## Versioning & releases
+
+- The three plugin manifests (`.claude-plugin`, `.cursor-plugin`, `.codex-plugin`) share
+  one [SemVer](https://semver.org/) version; `mcp-server/package.json` is versioned
+  independently. CI enforces manifest/tag alignment.
+- Record every user-visible change under `## [Unreleased]` in
+  [`CHANGELOG.md`](CHANGELOG.md) as you make it.
+- Full policy and the release-cutting steps: [versioning.md](docs/engineering/build-and-release/versioning.md).
+
 ## MCP tool naming
 
 Hosts prefix tools differently. See `skills/shared/references/mcp-tool-names.md`.

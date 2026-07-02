@@ -8,7 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 - **Repo standards pass** — `.github/CODEOWNERS`, canonical `docs/CHANGELOG.md` pointer,
-  `docs/reference/` for the game-rules docs, and an `agent:check` validate script
+  `docs/reference/` for the game-rules docs, a `docs/engineering/build-and-release/versioning.md`
+  release policy (referenced from `AGENTS.md`), and an `agent:check` validate script
   (`typecheck` + `build`) in `mcp-server/package.json`.
 - **Knockout fixtures** — embedded R32→final schedule (`wc2026KnockoutSchedule.ts`);
   `worldcup_fixtures` gains `stage` filter (default `knockout` for `when=next`).
