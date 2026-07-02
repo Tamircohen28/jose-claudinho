@@ -7,8 +7,8 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
-- **`.github/CODEOWNERS`** and a `docs/engineering/build-and-release/versioning.md`
-  release policy (referenced from `AGENTS.md`).
+- **`docs/engineering/build-and-release/versioning.md`** release policy
+  (referenced from `AGENTS.md`).
 
 ## [1.4.2] - 2026-07-02
 
