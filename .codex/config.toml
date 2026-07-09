@@ -1,0 +1,6 @@
+# Codex project config stub — see AGENTS.md and .codex-plugin/plugin.json for MCP wiring.
+# Fill env vars locally; never commit live SPORT5_COOKIE values.
+
+[mcp_servers.fantasy-wc]
+command = "node"
+args = ["mcp-server/dist/index.js"]
