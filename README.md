@@ -5,10 +5,12 @@
 # José Claudinho ⚽🤖
 
 [![CI](https://github.com/TamirCohen28/jose-claudinho/actions/workflows/ci.yml/badge.svg)](https://github.com/TamirCohen28/jose-claudinho/actions/workflows/ci.yml)
+[![Tamir Cohen](https://img.shields.io/badge/author-Tamir%20Cohen-181717?logo=github)](https://github.com/TamirCohen28)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-plugin-7c3aed.svg)](https://claude.com/claude-code)
-[![Cursor Plugin](https://img.shields.io/badge/Cursor-plugin-000000.svg)](https://cursor.com/docs/plugins)
-[![Codex Plugin](https://img.shields.io/badge/Codex-plugin-412991.svg)](https://developers.openai.com/codex/plugins/)
+[![version](https://img.shields.io/badge/version-1.4.2-blue)](CHANGELOG.md)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-2.0.0-blueviolet)](https://code.claude.com/docs/en/overview)
+[![Cursor](https://img.shields.io/badge/Cursor-0.45.0-000000)](https://cursor.com/docs)
+[![Codex](https://img.shields.io/badge/Codex-0.40.0-412991)](https://developers.openai.com/codex/guides/agents-md)
 
 > Your AI assistant manager for **Sport5 Fantasy World Cup 2026**.
 
@@ -80,31 +82,41 @@ you a concrete plan; you apply it in the app.
 - **Node.js ≥ 18** (developed on 22) — to build the MCP bundle. The runtime bundle is committed, so end-users only need Node to *run* it, not to install dependencies.
 - **A Sport5 Fantasy WC 2026 account** — for the private (team/league) reads. The player market, rules and fixtures work without one.
 
-## Install
+## Quick Start
 
 This repo **is** the plugin. Pick your host:
 
-| Host | Command | Docs |
-|------|---------|------|
-| Claude Code | `make plugin` | [install guide](docs/user/install/claude-code.md) |
-| Cursor | `make cursor-plugin` | [install guide](docs/user/install/cursor.md) |
-| Codex | `make codex-plugin` or `codex plugin marketplace add TamirCohen28/jose-claudinho` | [install guide](docs/user/install/codex.md) |
-
-**Claude Code** (builds bundle + installs marketplace plugin — idempotent):
+### Claude Code
 
 ```bash
-make plugin
+make install   # first time: MCP deps
+make plugin    # build bundle + install marketplace plugin
 ```
 
-It builds `mcp-server/dist/index.js`, then adds the local marketplace and installs
-`jose-claudinho@jose-claudinho` — updating in place if either is already present.
+Docs: [Claude Code install guide](docs/user/install/claude-code.md)
+
+### Cursor
+
+```bash
+make install        # first time: MCP deps
+make cursor-plugin  # symlink into ~/.cursor/plugins/local
+```
+
+Docs: [Cursor install guide](docs/user/install/cursor.md)
+
+### Codex
+
+```bash
+make install       # first time: MCP deps
+make codex-plugin  # register marketplace with Codex CLI
+```
+
+Docs: [Codex install guide](docs/user/install/codex.md)
+
 Restart your AI host after install to load the latest build.
 
-Opening this repo in **Cursor** also enables MCP via [`.cursor/mcp.json`](.cursor/mcp.json)
-(MCP-only; skills need the full plugin install).
-
 <details>
-<summary>Claude Code manual install</summary>
+<summary>Alternative (manual) — Claude Code marketplace commands</summary>
 
 ```bash
 # 1. Build the self-contained MCP bundle (one time, and after server changes)
@@ -115,7 +127,7 @@ cd ..
 
 # 2. Add as a local plugin marketplace, then install
 #    (from an interactive `claude` session)
-/plugin marketplace add /Users/tamircohen/Projects/jose-claudinho
+/plugin marketplace add /path/to/jose-claudinho
 /plugin install jose-claudinho@jose-claudinho
 ```
 </details>
@@ -123,6 +135,24 @@ cd ..
 The committed `mcp-server/dist/index.js` is a single self-contained file, so the
 plugin runs without `node_modules` present at runtime. Rebuild only when you change
 the server source.
+
+## Update
+
+After `git pull`:
+
+```bash
+make update
+make plugin          # Claude Code
+# or make cursor-plugin / make codex-plugin for your host
+```
+
+## Uninstall
+
+```bash
+make uninstall       # removes local Cursor symlink + build artifacts
+```
+
+For Claude Code, remove the plugin from `/plugin` settings if you no longer need it.
 
 ## Configure
 
@@ -200,16 +230,6 @@ to trigger; they do not auto-fire from a plain message.
 The underlying MCP tools (`optimize_squad`, `compute_league_win`, `compute_squad_ev`, etc.)
 are called automatically by the skills. Advanced users can call them directly via the MCP
 interface for custom analysis.
-
-## Update
-
-After `git pull`:
-
-```bash
-make plugin
-```
-
-Then restart Claude Code (or run `/plugin`) to load the latest build.
 
 ## How it works
 

@@ -7,8 +7,12 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
-- **`docs/engineering/build-and-release/versioning.md`** release policy
-  (referenced from `AGENTS.md`).
+- **Platform parity pass** — `platform-targets.json`, `platform-equivalence.md`,
+  `.codex/config.toml` stub, feature-equivalence + platform-targets CI scripts,
+  Makefile `update`/`uninstall`/`repo-standards-gate`, README version badges.
+
+### Changed
+- **`.claude-plugin/plugin.json`** — aligned `skills` and `mcpServers` with cursor/codex manifests.
 
 ## [1.4.2] - 2026-07-02
 

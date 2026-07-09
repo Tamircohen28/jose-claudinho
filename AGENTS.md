@@ -48,8 +48,9 @@ Hosts prefix tools differently. See `skills/shared/references/mcp-tool-names.md`
 - [Testing](docs/agent-guidelines/testing.md) — the typecheck + build correctness gate.
 - [Security](docs/agent-guidelines/security.md) — read-only, `.env` policy, secret scan.
 - [Style](docs/agent-guidelines/style.md) — code layout and commit conventions.
+- [Platform equivalence](docs/agent-guidelines/platform-equivalence.md) — Claude/Cursor/Codex feature mapping.
 
-Run `make agent-check` to validate agent setup (drift + manifests + typecheck) — CI mirrors this.
+Run `make agent:check` to validate agent setup (drift + feature equivalence + platform targets + typecheck) — CI mirrors this.
 
 ## User docs
 

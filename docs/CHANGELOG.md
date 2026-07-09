@@ -4,3 +4,8 @@ The canonical changelog lives at the repository root: **[../CHANGELOG.md](../CHA
 
 It follows [Keep a Changelog](https://keepachangelog.com/) and
 [Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+### Changed
+- (none yet — edit root CHANGELOG.md under `[Unreleased]`)

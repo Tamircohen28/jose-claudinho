@@ -5,11 +5,14 @@ MCP         := mcp-server
 PLUGIN      := jose-claudinho
 MARKETPLACE := jose-claudinho
 
-.PHONY: help install typecheck build clean bundle plugin cursor-plugin codex-plugin hooks agent-check
+.PHONY: help install update uninstall typecheck build clean bundle plugin cursor-plugin codex-plugin hooks agent-check \
+	check-agent-drift check-feature-equivalence check-platform-targets \
+	platform-targets-sync platform-targets-assert agent\:check agent-polish-gate assert-contract repo-standards-gate
 
 MANIFESTS := .claude-plugin/plugin.json .cursor-plugin/plugin.json .codex-plugin/plugin.json .mcp.json .agents/plugins/marketplace.json $(MCP)/package.json
 
 CURSOR_PLUGIN_DIR := $(HOME)/.cursor/plugins/local/$(PLUGIN)
+TAMIRS_CONTRACT ?= $(HOME)/Projects/tamirs-superpowers/skills/repo/_contract
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -17,6 +20,13 @@ help: ## Show this help
 
 install: ## Install MCP server dependencies (public npm registry)
 	cd $(MCP) && npm install
+
+update: bundle ## Refresh MCP bundle and reinstall plugin for your host
+	@echo "── update complete — run 'make plugin', 'make cursor-plugin', or 'make codex-plugin' for your host ──"
+
+uninstall: clean ## Remove local Cursor symlink and build artifacts
+	@rm -rf "$(CURSOR_PLUGIN_DIR)" 2>/dev/null || true
+	@echo "✓ removed local Cursor plugin symlink (if present) and build artifacts"
 
 typecheck: ## Type-check the MCP server (the primary correctness gate)
 	cd $(MCP) && npm run typecheck
@@ -77,11 +87,35 @@ hooks: ## Enable the local git hooks (blocks direct pushes to main)
 	@echo "✓ core.hooksPath = .githooks — direct pushes to main are now blocked locally."
 
 # Canonical agent-validation gate (a.k.a. agent:check). CI mirrors this target.
-agent-check: ## Validate agent setup: drift check + manifests + typecheck
-	bash scripts/check-agent-drift.sh
+check-agent-drift:
+	bash scripts/check-agent-drift.sh .
+
+check-feature-equivalence:
+	bash scripts/check-feature-equivalence.sh .
+
+check-platform-targets:
+	bash scripts/check-platform-targets.sh .
+
+platform-targets-sync:
+	bash scripts/check-platform-targets.sh . --sync
+
+platform-targets-assert:
+	bash scripts/check-platform-targets.sh . --assert-current
+
+agent\:check: check-agent-drift check-feature-equivalence check-platform-targets
 	@for f in $(MANIFESTS); do \
 		echo "Validating $$f"; \
 		python3 -c "import json,sys; json.load(open('$$f'))" || exit 1; \
 	done
 	bash scripts/check-manifest-version-alignment.sh .
 	cd $(MCP) && npm run typecheck
+
+agent-polish-gate: platform-targets-sync platform-targets-assert agent\:check
+
+assert-contract:
+	@test -d "$(TAMIRS_CONTRACT)/scripts" || { echo "TAMIRS_CONTRACT not found at $(TAMIRS_CONTRACT)" >&2; exit 1; }
+	bash "$(TAMIRS_CONTRACT)/scripts/assert-contract.sh" . app-gold
+
+repo-standards-gate: agent-polish-gate assert-contract
+
+agent-check: agent\:check ## Alias for agent:check (backward compatible)
