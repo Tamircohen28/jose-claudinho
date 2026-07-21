@@ -86,3 +86,10 @@ jobs:
             exit 1
           fi
           echo "No secret patterns found."
+
+  CI:
+    name: CI
+    runs-on: ubuntu-latest
+    needs: [validate, test, agents, manifest-version-alignment, secret-scan]
+    steps:
+      - run: echo "All CI jobs passed"
