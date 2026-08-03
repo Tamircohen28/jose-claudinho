@@ -25,8 +25,21 @@ After local testing (`make cursor-plugin`):
 
 ## Claude Code
 
-This repo is cataloged via the **tamirs-plugins** marketplace (external to this repo).
+This repo is its own marketplace — [`.claude-plugin/marketplace.json`](../../../.claude-plugin/marketplace.json)
+declares the plugin with `"source": "./"`, so users can run
+`/plugin marketplace add TamirCohen28/jose-claudinho` with no catalog involved.
+
+It is *also* cataloged via the external **tamirs-plugins** marketplace
+([Tamircohen28/plugins](https://github.com/Tamircohen28/plugins)), which pins
+`"ref": "main"` — so catalog users track the branch, not a tag.
+
 Use `make plugin` for local development.
+
+## OpenCode
+
+Nothing to publish: OpenCode has no plugin marketplace. Users clone the repo and point
+`skills.paths` at it, or symlink `skills/` into `~/.config/opencode/skill/`. See
+[opencode.md](opencode.md).
 
 ## Community (unreviewed)
 

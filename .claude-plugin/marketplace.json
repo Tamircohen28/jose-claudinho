@@ -1,0 +1,18 @@
+{
+  "name": "jose-claudinho",
+  "owner": {
+    "name": "Tamir Cohen",
+    "github": "TamirCohen28",
+    "url": "https://github.com/TamirCohen28"
+  },
+  "metadata": {
+    "description": "Standalone marketplace for the jose-claudinho plugin. Lets Claude Code install straight from this repo without the tamirs-plugins catalog."
+  },
+  "plugins": [
+    {
+      "name": "jose-claudinho",
+      "source": "./",
+      "description": "Sport5 Fantasy World Cup 2026 assistant — reads the market, your team and rival top teams, learns from weekly snapshots, and recommends transfers, captain and lineup under the official rules."
+    }
+  ]
+}

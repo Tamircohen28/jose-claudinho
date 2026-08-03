@@ -1,10 +1,28 @@
 # Install — Codex
 
+| | |
+|---|---|
+| **Validated against** | Codex **0.146.0** |
+| **Minimum supported** | **0.40.0** |
+| **Plugin manifest** | `.codex-plugin/plugin.json` |
+| **Marketplace manifest** | `.agents/plugins/marketplace.json` |
+| **Official docs** | [AGENTS.md](https://developers.openai.com/codex/guides/agents-md) · [Config](https://developers.openai.com/codex/config-basic) |
+
+Check your version:
+
+```bash
+codex --version
+```
+
+> **Codex resolves `.agents/plugins/marketplace.json`, not `.codex-plugin/marketplace.json`.**
+> That is the single most common reason a repo that "obviously has a Codex manifest" fails
+> to register.
+
 José Claudinho runs as a **Codex plugin** with bundled skills and the `fantasy-wc` MCP server.
 
 ## Prerequisites
 
-- [Codex CLI](https://developers.openai.com/codex/) or Codex app
+- [Codex CLI](https://developers.openai.com/codex/) 0.40.0 or newer, or the Codex app
 - Node.js ≥ 18 on your PATH
 - Sport5 Fantasy WC 2026 account (for private reads)
 
@@ -12,10 +30,20 @@ José Claudinho runs as a **Codex plugin** with bundled skills and the `fantasy-
 
 ```bash
 codex plugin marketplace add TamirCohen28/jose-claudinho
+codex plugin add jose-claudinho@jose-claudinho
 ```
 
-Then open Codex, run `/plugins`, select the **José Claudinho** marketplace, install
-**jose-claudinho**, and restart Codex.
+`codex plugin marketplace add` accepts an `owner/repo` shorthand, a full git URL, or a
+local path; append `@<ref>` to pin a branch or tag.
+
+Confirm it registered:
+
+```bash
+codex plugin list --marketplace jose-claudinho
+```
+
+Then restart Codex. You can also install interactively: open Codex, run `/plugins`,
+select the **José Claudinho** marketplace, and install **jose-claudinho**.
 
 ### Local development
 
