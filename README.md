@@ -7,15 +7,17 @@
 [![CI](https://github.com/TamirCohen28/jose-claudinho/actions/workflows/ci.yml/badge.svg)](https://github.com/TamirCohen28/jose-claudinho/actions/workflows/ci.yml)
 [![Tamir Cohen](https://img.shields.io/badge/author-Tamir%20Cohen-181717?logo=github)](https://github.com/TamirCohen28)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![version](https://img.shields.io/badge/version-1.4.2-blue)](CHANGELOG.md)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-2.0.0-blueviolet)](https://code.claude.com/docs/en/overview)
-[![Cursor](https://img.shields.io/badge/Cursor-0.45.0-000000)](https://cursor.com/docs)
-[![Codex](https://img.shields.io/badge/Codex-0.40.0-412991)](https://developers.openai.com/codex/guides/agents-md)
+[![version](https://img.shields.io/badge/version-1.5.0-blue)](CHANGELOG.md)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-2.1.220-blueviolet)](https://code.claude.com/docs/en/plugins-reference)
+[![Cursor](https://img.shields.io/badge/Cursor-3.14.7-000000)](https://cursor.com/docs/plugins)
+[![Codex](https://img.shields.io/badge/Codex-0.146.0-412991)](https://developers.openai.com/codex/guides/agents-md)
+[![OpenCode](https://img.shields.io/badge/OpenCode-1.18.11-fab283)](https://opencode.ai/docs/skills/)
 
 > Your AI assistant manager for **Sport5 Fantasy World Cup 2026**.
 
-José Claudinho is a **multi-host plugin** for [Claude Code](https://claude.com/claude-code),
-[Cursor](https://cursor.com), and [Codex](https://developers.openai.com/codex/plugins/) that
+José Claudinho is a **multi-host plugin** for the four targets this repo supports —
+[Claude Code](https://claude.com/claude-code), [Cursor](https://cursor.com),
+[Codex](https://developers.openai.com/codex/plugins/), and [OpenCode](https://opencode.ai) — that
 bundles an MCP server + skills + slash commands. It reads the player market, your
 team, your rivals' top teams, the league tables and the World Cup fixtures, learns
 from weekly snapshots of the best teams, and recommends the transfers, captain and
@@ -77,20 +79,32 @@ you a concrete plan; you apply it in the app.
 
 ## Prerequisites
 
-- **An AI host** — [Claude Code](https://claude.com/claude-code), [Cursor](https://cursor.com),
-  or [Codex](https://developers.openai.com/codex/plugins/).
+- **An AI host** — one of the four supported targets:
+  [Claude Code](https://claude.com/claude-code) ≥ 2.0.0, [Cursor](https://cursor.com) ≥ 3.14.7,
+  [Codex](https://developers.openai.com/codex/plugins/) ≥ 0.40.0, or
+  [OpenCode](https://opencode.ai) ≥ 1.16.2. Validated versions and the evidence behind each
+  floor: [platform-targets.json](docs/engineering/build-and-release/platform-targets.json).
 - **Node.js ≥ 18** (developed on 22) — to build the MCP bundle. The runtime bundle is committed, so end-users only need Node to *run* it, not to install dependencies.
 - **A Sport5 Fantasy WC 2026 account** — for the private (team/league) reads. The player market, rules and fixtures work without one.
 
 ## Quick Start
 
-This repo **is** the plugin. Pick your host:
+This repo **is** the plugin, and it is its own marketplace on every target that has one — no
+catalog required. Pick your host; the [install index](docs/user/install/README.md) has the full
+per-target guides.
 
 ### Claude Code
 
 ```bash
 make install   # first time: MCP deps
 make plugin    # build bundle + install marketplace plugin
+```
+
+Or straight from GitHub, without cloning:
+
+```text
+/plugin marketplace add TamirCohen28/jose-claudinho
+/plugin install jose-claudinho@jose-claudinho
 ```
 
 Docs: [Claude Code install guide](docs/user/install/claude-code.md)
@@ -111,12 +125,34 @@ make install       # first time: MCP deps
 make codex-plugin  # register marketplace with Codex CLI
 ```
 
+Or straight from GitHub:
+
+```bash
+codex plugin marketplace add TamirCohen28/jose-claudinho
+codex plugin add jose-claudinho@jose-claudinho
+```
+
 Docs: [Codex install guide](docs/user/install/codex.md)
+
+### OpenCode
+
+OpenCode has no plugin marketplace — it reads skills from disk:
+
+```bash
+git clone https://github.com/TamirCohen28/jose-claudinho.git
+cd jose-claudinho && make install && cd mcp-server && npm run build
+ln -s "$PWD/../skills" ~/.config/opencode/skill
+```
+
+Then declare the `fantasy-wc` MCP server in `~/.config/opencode/opencode.json` —
+`.mcp.json` is not read on this target.
+
+Docs: [OpenCode install guide](docs/user/install/opencode.md)
 
 Restart your AI host after install to load the latest build.
 
 <details>
-<summary>Alternative (manual) — Claude Code marketplace commands</summary>
+<summary>Alternative (manual) — Claude Code marketplace commands from a local clone</summary>
 
 ```bash
 # 1. Build the self-contained MCP bundle (one time, and after server changes)

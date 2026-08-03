@@ -9,7 +9,7 @@ MARKETPLACE := jose-claudinho
 	check-agent-drift check-feature-equivalence check-platform-targets \
 	platform-targets-sync platform-targets-assert agent\:check agent-polish-gate assert-contract repo-standards-gate
 
-MANIFESTS := .claude-plugin/plugin.json .cursor-plugin/plugin.json .codex-plugin/plugin.json .mcp.json .agents/plugins/marketplace.json $(MCP)/package.json
+MANIFESTS := .claude-plugin/plugin.json .claude-plugin/marketplace.json .cursor-plugin/plugin.json .codex-plugin/plugin.json .mcp.json .agents/plugins/marketplace.json opencode.json $(MCP)/package.json
 
 CURSOR_PLUGIN_DIR := $(HOME)/.cursor/plugins/local/$(PLUGIN)
 TAMIRS_CONTRACT ?= $(HOME)/Projects/tamirs-superpowers/skills/repo/_contract
@@ -107,7 +107,7 @@ agent\:check: check-agent-drift check-feature-equivalence check-platform-targets
 		echo "Validating $$f"; \
 		python3 -c "import json,sys; json.load(open('$$f'))" || exit 1; \
 	done
-	bash scripts/check-manifest-version-alignment.sh .
+	bash scripts/check-manifest-version-alignment.sh . --manifests-only
 	cd $(MCP) && npm run typecheck
 
 agent-polish-gate: platform-targets-sync platform-targets-assert agent\:check

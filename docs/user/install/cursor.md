@@ -1,13 +1,41 @@
 # Install — Cursor
 
-José Claudinho runs as a **Cursor plugin** (skills, commands, MCP) or as **MCP-only**
-when you open this repo in Cursor.
+| | |
+|---|---|
+| **Validated against** | Cursor **3.14.7** |
+| **Minimum supported** | **3.14.7** |
+| **Plugin manifest** | `.cursor-plugin/plugin.json` |
+| **Marketplace manifest** | none — Cursor imports the plugin manifest from the repo |
+| **Official docs** | [Plugins](https://cursor.com/docs/plugins) · [Rules](https://cursor.com/docs/context/rules) |
+
+Check your version: **Cursor → About Cursor**, or `cursor --version`.
+
+> Cursor's docs state no minimum version for plugins. The floor above is the version this
+> release was actually validated on rather than a guess — older builds may work.
+
+José Claudinho runs as a **Cursor plugin** (skills, commands, MCP), as a **team
+marketplace import** straight from GitHub, or as **MCP-only** when you open this repo in
+Cursor.
 
 ## Prerequisites
 
-- [Cursor](https://cursor.com)
+- [Cursor](https://cursor.com) 3.14.7 or newer
 - Node.js ≥ 18 on your PATH (stdio MCP server)
 - Sport5 Fantasy WC 2026 account (for private reads)
+
+## Option 0 — Import from repo (no clone)
+
+Cursor can read `.cursor-plugin/plugin.json` directly out of a GitHub repo:
+
+1. **Dashboard → Plugins → Team Marketplaces → Add Marketplace**
+2. Choose **Import from Repo** and enter `TamirCohen28/jose-claudinho`
+3. Install **jose-claudinho** and reload Cursor
+
+Leave **Auto Refresh** on: Cursor re-reads the whole manifest on every push, so a version
+bump is not required for you to pick up changes — unlike Claude Code.
+
+The MCP server still needs the built bundle, so for full functionality prefer Option A
+below or clone the repo once and run `make bundle`.
 
 ## Option A — Full plugin (recommended)
 

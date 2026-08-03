@@ -6,12 +6,47 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-03
+
 ### Added
-- **Platform parity pass** — `platform-targets.json`, `platform-equivalence.md`,
-  `.codex/config.toml` stub, feature-equivalence + platform-targets CI scripts,
-  Makefile `update`/`uninstall`/`repo-standards-gate`, README version badges.
+- **OpenCode is now a supported target** — four in total: Claude Code, Cursor, Codex,
+  OpenCode. `opencode.json` declares `skills.paths`, so all 11 skills load natively
+  (confirmed with `opencode debug skill`). OpenCode has no plugin manifest or
+  marketplace, so this target is a clone plus config, and its gaps are documented rather
+  than papered over.
+- **`.claude-plugin/marketplace.json`** — the repo is now its own Claude Code marketplace.
+- **`docs/user/install/opencode.md`** and **`docs/user/install/README.md`** — a per-target
+  install index with the version matrix, a component-coverage table, and the manifest
+  paths for each target.
+
+### Fixed
+- **Standalone Claude Code install was broken.** `claude plugin marketplace add <repo>`
+  failed with `Marketplace file not found at .../.claude-plugin/marketplace.json` — the
+  file did not exist. That also broke `make plugin`, which runs the same command against
+  the repo root, so the documented local-development path could never have worked either.
+  Verified fixed end to end with the 2.1.220 CLI.
+- **Platform version floors were stale or wrong.** Cursor was pinned at `0.45.0`, which
+  predates Cursor's plugin system entirely; Claude Code and Codex were both recorded as
+  validated against their own minimums. Every target now records `validated_against`,
+  `verified_on`, and a `verification_method`, checked against a locally installed CLI.
 
 ### Changed
+- `platform-targets.json` moves to `schema_version` 2 with a `supported_targets` array,
+  per-target `capabilities`, `supported_min_source`, and an OpenCode `capability_gaps`
+  block. `scripts/check-platform-targets.sh` now reads the target list from that array
+  instead of a hardcoded three, so adding a target automatically extends the gate.
+- Manifests bumped to 1.5.0 (`.claude-plugin`, `.cursor-plugin`, `.codex-plugin`, and the
+  Codex marketplace entry).
+- README badges updated to the validated versions; Quick Start now covers all four
+  targets and shows the no-clone install path for Claude Code, Cursor, and Codex.
+- `docs/user/install/{claude-code,cursor,codex}.md` each gained a version header, the
+  marketplace-manifest path for that target, and a troubleshooting table. The Codex guide
+  now leads with the fact that Codex resolves `.agents/plugins/marketplace.json`, not
+  `.codex-plugin/marketplace.json`.
+- **Platform parity pass** (previously unreleased) — `platform-targets.json`,
+  `platform-equivalence.md`, `.codex/config.toml` stub, feature-equivalence +
+  platform-targets CI scripts, Makefile `update`/`uninstall`/`repo-standards-gate`,
+  README version badges.
 - **`.claude-plugin/plugin.json`** — aligned `skills` and `mcpServers` with cursor/codex manifests.
 
 ## [1.4.2] - 2026-07-02

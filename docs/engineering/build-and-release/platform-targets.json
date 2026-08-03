@@ -1,28 +1,114 @@
 {
-  "schema_version": 1,
-  "last_reviewed": "2026-07-10",
-  "reviewed_by_skill": "tamirs-superpowers@1.6.1",
+  "schema_version": 2,
+  "last_reviewed": "2026-08-03",
+  "reviewed_by_skill": "tamirs-superpowers@1.12.0",
+  "supported_targets": [
+    "claude_code",
+    "cursor",
+    "codex",
+    "opencode"
+  ],
   "targets": {
     "claude_code": {
       "supported_min": "2.0.0",
-      "validated_against": "2.0.0",
-      "latest_known": "2.0.0",
-      "doc_urls": ["https://code.claude.com/docs/en/overview"],
-      "features_adopted": ["plugin-marketplace", "mcp-servers", "project-skills"]
+      "supported_min_source": "manifest format (.claude-plugin/plugin.json) stable since 2.0.0",
+      "validated_against": "2.1.220",
+      "latest_known": "2.1.220",
+      "verified_on": "2026-08-03",
+      "verification_method": "claude --version on the maintainer machine; latest from registry.npmjs.org/@anthropic-ai/claude-code; standalone install verified with `claude plugin marketplace add` + `claude plugin install`",
+      "install_doc": "docs/user/install/claude-code.md",
+      "doc_urls": [
+        "https://code.claude.com/docs/en/plugins-reference",
+        "https://code.claude.com/docs/en/plugin-marketplaces",
+        "https://code.claude.com/docs/en/skills"
+      ],
+      "features_adopted": [
+        "plugin-marketplace",
+        "mcp-servers",
+        "project-skills",
+        "multi-platform-manifests"
+      ],
+      "capabilities": [
+        "skills",
+        "mcp",
+        "marketplace"
+      ]
     },
     "cursor": {
-      "supported_min": "0.45.0",
-      "validated_against": "0.45.0",
-      "latest_known": "0.45.0",
-      "doc_urls": ["https://cursor.com/docs"],
-      "features_adopted": ["mdc-rules", "agents-md", "plugin-mcp"]
+      "supported_min": "3.14.7",
+      "supported_min_source": "Cursor documents no minimum version for plugins; the floor is set to the version actually validated rather than guessed",
+      "validated_against": "3.14.7",
+      "latest_known": "3.14.7",
+      "verified_on": "2026-08-03",
+      "verification_method": "cursor --version on the maintainer machine",
+      "install_doc": "docs/user/install/cursor.md",
+      "doc_urls": [
+        "https://cursor.com/docs/plugins",
+        "https://cursor.com/docs/context/rules"
+      ],
+      "features_adopted": [
+        "cursor-plugin-manifest",
+        "mdc-rules",
+        "agents-md",
+        "plugin-mcp"
+      ],
+      "capabilities": [
+        "skills",
+        "rules",
+        "mcp",
+        "marketplace"
+      ]
     },
     "codex": {
       "supported_min": "0.40.0",
-      "validated_against": "0.40.0",
-      "latest_known": "0.40.0",
-      "doc_urls": ["https://developers.openai.com/codex/guides/agents-md"],
-      "features_adopted": ["agents-md", "plugin-marketplace"]
+      "supported_min_source": "earliest release this repo has claimed AGENTS.md + .codex-plugin manifest support for",
+      "validated_against": "0.146.0",
+      "latest_known": "0.146.0",
+      "verified_on": "2026-08-03",
+      "verification_method": "codex --version on the maintainer machine; standalone install verified with `codex plugin marketplace add` against this repo root",
+      "install_doc": "docs/user/install/codex.md",
+      "doc_urls": [
+        "https://developers.openai.com/codex/guides/agents-md",
+        "https://developers.openai.com/codex/config-basic"
+      ],
+      "features_adopted": [
+        "codex-plugin-manifest",
+        "agents-md",
+        "plugin-marketplace"
+      ],
+      "capabilities": [
+        "skills",
+        "mcp",
+        "marketplace"
+      ]
+    },
+    "opencode": {
+      "supported_min": "1.16.2",
+      "supported_min_source": "oldest version on which `skills.paths` discovery of this repo's skills was verified with `opencode debug skill`",
+      "validated_against": "1.18.11",
+      "latest_known": "1.18.11",
+      "verified_on": "2026-08-03",
+      "verification_method": "opencode --version on the maintainer machine; latest from registry.npmjs.org/opencode-ai; all 11 skills confirmed loaded with `opencode debug skill`",
+      "install_doc": "docs/user/install/opencode.md",
+      "doc_urls": [
+        "https://opencode.ai/docs/skills/",
+        "https://opencode.ai/docs/mcp-servers/",
+        "https://opencode.ai/config.json"
+      ],
+      "features_adopted": [
+        "native-skill-discovery",
+        "skills-paths-config",
+        "local-mcp-server"
+      ],
+      "capabilities": [
+        "skills",
+        "mcp"
+      ],
+      "capability_gaps": {
+        "marketplace": "No plugin marketplace — install is by clone plus `skills.paths` or a symlink into the OpenCode skills directory.",
+        "mcp_autowiring": "`.mcp.json` is not read; the fantasy-wc MCP server must be declared by hand under `mcp` in opencode.json.",
+        "slash_commands": "Skills are model-invoked rather than exposed as `/squad-advice`-style slash commands."
+      }
     }
   }
 }
